@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#e8edf2" />
+  <meta name="description" content="Kostenlose Open-Source-Wetter-PWA mit 21-Tage-Trend, Regenradar, Pollenanalyse und Gartenkalender." />
+  <title>WetterGarten 21</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://api.open-meteo.com" />
+  <link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar neo-raised">
+      <div class="brand">
+        <div class="brand-icon">☁️</div>
+        <div>
+          <h1>WetterGarten <span>21</span></h1>
+          <p id="location-label">Bad Windsheim</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="favorite-toggle" class="icon-btn neo-button" aria-label="Ort zu Favoriten hinzufügen" aria-pressed="false">☆</button>
+        <button id="theme-toggle" class="icon-btn neo-button" aria-label="Darstellung wechseln">◐</button>
+        <button id="locate-btn" class="icon-btn neo-button" aria-label="Standort verwenden">⌖</button>
+      </div>
+    </header>
+
+    <section class="search-panel neo-inset">
+      <span class="search-icon">⌕</span>
+      <input id="location-search" type="search" placeholder="Ort suchen …" autocomplete="off" />
+      <button id="search-clear" class="clear-btn" aria-label="Suche löschen">×</button>
+      <div id="search-results" class="search-results" hidden></div>
+    </section>
+
+    <section id="favorites-bar" class="favorites-bar neo-inset" aria-label="Favorisierte Orte" hidden>
+      <span class="favorites-label">★ Favoriten</span>
+      <div id="favorites-list" class="favorites-list"></div>
+    </section>
+
+    <main>
+      <section id="view-weather" class="view active" aria-labelledby="tab-weather">
+        <div id="weather-loading" class="loading-card neo-raised">
+          <div class="spinner"></div><p>Wetterdaten werden geladen …</p>
+        </div>
+        <div id="weather-content" hidden>
+          <article class="hero-weather neo-raised">
+            <div class="hero-main">
+              <div id="current-icon" class="weather-icon-large">⛅</div>
+              <div>
+                <p class="eyebrow">Aktuell</p>
+                <div class="current-temp"><span id="current-temp">--</span>°</div>
+                <p id="current-condition">Wetter wird geladen</p>
+              </div>
+            </div>
+            <div class="hero-details">
+              <div class="metric neo-inset"><span>Gefühlt</span><strong id="current-feels">--°</strong></div>
+              <div class="metric neo-inset"><span>Feuchte</span><strong id="current-humidity">--%</strong></div>
+              <div class="metric neo-inset"><span>Wind</span><strong id="current-wind">-- km/h</strong></div>
+              <div class="metric neo-inset"><span>Regen</span><strong id="current-rain">-- mm</strong></div>
+            </div>
+          </article>
+
+          <article id="farmer-card" class="farmer-card neo-raised">
+            <div class="farmer-badge">🌾 Bauernregel</div>
+            <blockquote id="farmer-quote">„Mairegen bringt Segen.“</blockquote>
+            <p>Traditionelle Wetterweisheit – keine wissenschaftliche Prognose.</p>
+          </article>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <div><p class="eyebrow">Nächste Stunden</p><h2>Stundenverlauf</h2></div>
+              <span class="pill">24 h</span>
+            </div>
+            <div id="hourly-list" class="horizontal-list"></div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <div><p class="eyebrow">Vorhersage</p><h2>21 Tage</h2></div>
+              <button id="forecast-info" class="info-btn neo-button" aria-label="Information zur Vorhersage">i</button>
+            </div>
+            <div class="forecast-legend">
+              <span><i class="dot reliable"></i> Tage 1–7</span>
+              <span><i class="dot medium"></i> Tage 8–16</span>
+              <span><i class="dot trend"></i> Tage 17–21: Ensemble-Trend</span>
+            </div>
+            <div id="forecast-grid" class="forecast-grid"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-radar" class="view" aria-labelledby="tab-radar">
+        <div class="section-heading page-heading">
+          <div><p class="eyebrow">Niederschlag</p><h2>Regenradar</h2></div>
+          <span id="radar-status" class="pill">Live</span>
+        </div>
+        <article class="radar-card neo-raised">
+          <div id="radar-map" aria-label="Animierte Niederschlagsradarkarte"></div>
+          <div id="radar-message" class="map-message" hidden></div>
+          <div class="radar-controls neo-raised">
+            <button id="radar-play" class="icon-btn neo-button" aria-label="Radar abspielen">▶</button>
+            <input id="radar-slider" type="range" min="0" max="0" value="0" aria-label="Radarzeit wählen" />
+            <time id="radar-time">–</time>
+          </div>
+        </article>
+        <div class="radar-legend neo-inset">
+          <span>Leicht</span><div class="rain-scale"></div><span>Stark</span>
+        </div>
+        <p class="source-note">Radar zeigt zurückliegende Messbilder. Kartendaten © OpenStreetMap, Radar © RainViewer.</p>
+      </section>
+
+      <section id="view-pollen" class="view" aria-labelledby="tab-pollen">
+        <div class="section-heading page-heading">
+          <div><p class="eyebrow">Allergiewetter</p><h2>Pollenflug-Analyse</h2></div>
+          <span class="pill">bis 4 Tage</span>
+        </div>
+        <article id="pollen-summary" class="pollen-summary neo-raised">
+          <div class="pollen-orb" id="pollen-orb">🌿</div>
+          <div><p class="eyebrow">Gesamtbelastung</p><h3 id="pollen-level">Wird geladen …</h3><p id="pollen-advice">Die Analyse wird für deinen Ort erstellt.</p></div>
+        </article>
+        <div id="pollen-species" class="pollen-grid"></div>
+        <section class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">Tagesmaxima</p><h2>Verlauf</h2></div></div>
+          <div id="pollen-days" class="pollen-days"></div>
+        </section>
+        <article class="advice-card neo-inset">
+          <strong>Hinweis</strong>
+          <p>Die Belastungsstufen sind eine Orientierung aus modellierten Pollenkonzentrationen. Persönliche Beschwerden können deutlich abweichen.</p>
+        </article>
+      </section>
+
+      <section id="view-garden" class="view" aria-labelledby="tab-garden">
+        <div class="section-heading page-heading">
+          <div><p class="eyebrow">Gartenjahr</p><h2>Aussaat & Ernte</h2></div>
+          <span id="garden-month" class="pill">Aktuell</span>
+        </div>
+        <article id="garden-advice" class="garden-advice neo-raised"></article>
+        <div class="garden-tools">
+          <div class="garden-search neo-inset"><span>⌕</span><input id="plant-search" type="search" placeholder="Gemüse oder Kräuter suchen …" /></div>
+          <select id="garden-filter" class="neo-select" aria-label="Kalender filtern">
+            <option value="current">Jetzt passend</option>
+            <option value="all">Alle Pflanzen</option>
+            <option value="sow">Jetzt aussäen</option>
+            <option value="harvest">Jetzt ernten</option>
+          </select>
+        </div>
+        <div class="calendar-legend">
+          <span><i class="legend-box indoor"></i> Vorkultur</span>
+          <span><i class="legend-box sow"></i> Aussaat</span>
+          <span><i class="legend-box harvest"></i> Ernte</span>
+        </div>
+        <div id="plant-list" class="plant-list"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav neo-raised" aria-label="Hauptnavigation">
+      <button id="tab-weather" class="nav-item active" data-view="weather"><span>☀</span><small>Wetter</small></button>
+      <button id="tab-radar" class="nav-item" data-view="radar"><span>◉</span><small>Radar</small></button>
+      <button id="tab-pollen" class="nav-item" data-view="pollen"><span>❉</span><small>Pollen</small></button>
+      <button id="tab-garden" class="nav-item" data-view="garden"><span>♧</span><small>Garten</small></button>
+    </nav>
+  </div>
+
+  <dialog id="info-dialog" class="neo-dialog">
+    <button class="dialog-close" aria-label="Schließen">×</button>
+    <h2>Warum nur ein Trend ab Tag 17?</h2>
+    <p>Die ersten 16 Tage stammen aus der regulären Modellvorhersage. Für Tag 17 bis 21 nutzt die App ein Ensemble-Mittel: viele Modellläufe werden zusammengefasst.</p>
+    <p>Je größer die Streuung, desto unsicherer ist der Trend. Deshalb werden dort Temperaturbereiche statt scheinbar exakter Werte betont.</p>
+  </dialog>
+
+  <dialog id="day-dialog" class="neo-dialog day-dialog">
+    <button id="day-dialog-close" class="dialog-close" aria-label="Schließen">×</button>
+    <p class="eyebrow">Stündliche Vorhersage</p>
+    <h2 id="day-dialog-title">Tagesverlauf</h2>
+    <p id="day-dialog-subtitle" class="day-subtitle"></p>
+    <div id="day-dialog-metrics" class="day-metrics"></div>
+    <div id="day-hourly-list" class="horizontal-list day-hourly-list"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
