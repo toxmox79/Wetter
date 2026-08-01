@@ -385,6 +385,12 @@ function renderWeather() {
   $('#current-icon').textContent = icon;
   $('#current-temp').textContent = round(w.current.temperature_2m);
   $('#current-condition').textContent = condition;
+  if ($('#current-stamp')) {
+    const currentDate = w.current.time ? new Date(w.current.time) : new Date();
+    $('#current-stamp').textContent = new Intl.DateTimeFormat('de-DE', {
+      day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'
+    }).format(currentDate).replace(',', '');
+  }
   $('#current-feels').textContent = `${round(w.current.apparent_temperature)}°`;
   $('#current-humidity').textContent = `${round(w.current.relative_humidity_2m)}%`;
   $('#current-wind').textContent = `${round(w.current.wind_speed_10m)} km/h`;
@@ -830,12 +836,26 @@ function stopRadar() {
   if ($('#radar-play')) $('#radar-play').textContent = '▶';
 }
 
+function scrollAppToTop(behavior = 'smooth') {
+  const shell = $('.app-shell');
+  if (shell) shell.scrollTo({ top: 0, behavior });
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
 function setupNavigation() {
-  $$('.nav-item').forEach(button => button.addEventListener('click', () => {
+  const navButtons = $$('.nav-item');
+  navButtons.forEach((button, index) => button.addEventListener('click', () => {
+    if (button.classList.contains('active')) {
+      scrollAppToTop();
+      return;
+    }
+
+    const activeIndex = navButtons.findIndex(item => item.classList.contains('active'));
+    document.documentElement.dataset.navDirection = activeIndex >= 0 && index < activeIndex ? 'back' : 'forward';
     const view = button.dataset.view;
-    $$('.nav-item').forEach(b => b.classList.toggle('active', b === button));
+    navButtons.forEach(b => b.classList.toggle('active', b === button));
     $$('.view').forEach(v => v.classList.toggle('active', v.id === `view-${view}`));
-    window.scrollTo({top:0, behavior:'smooth'});
+    scrollAppToTop();
     if (view === 'radar') {
       setTimeout(() => {
         initMap();
@@ -849,7 +869,20 @@ function setupNavigation() {
 
 function setupSearch() {
   const input = $('#location-search');
+  const panel = $('.search-panel');
+  const locationTrigger = $('#location-open');
+  const openSearch = () => {
+    if (panel) panel.hidden = false;
+    input.focus();
+  };
   let timer;
+  locationTrigger?.addEventListener('click', openSearch);
+  locationTrigger?.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openSearch();
+    }
+  });
   input.addEventListener('input', () => {
     clearTimeout(timer);
     const query = input.value.trim();
@@ -864,13 +897,22 @@ function setupSearch() {
           const r = results[Number(btn.dataset.index)];
           input.value = '';
           $('#search-results').hidden = true;
+          if (panel) panel.hidden = true;
           setLocation(r);
         }));
       } catch { toast('Ortssuche derzeit nicht verfügbar'); }
     }, 350);
   });
-  $('#search-clear').addEventListener('click', () => { input.value=''; $('#search-results').hidden=true; input.focus(); });
-  document.addEventListener('click', event => { if (!event.target.closest('.search-panel')) $('#search-results').hidden = true; });
+  $('#search-clear').addEventListener('click', () => {
+    input.value = '';
+    $('#search-results').hidden = true;
+    if (panel) panel.hidden = true;
+  });
+  document.addEventListener('click', event => {
+    if (event.target.closest('.search-panel') || event.target.closest('#location-open')) return;
+    $('#search-results').hidden = true;
+    if (panel && !input.value.trim()) panel.hidden = true;
+  });
 }
 
 function setupGeolocation() {
