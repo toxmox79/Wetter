@@ -531,7 +531,7 @@ function openDayDetails(index) {
   </article>`).join('');
 
   $('#day-dialog-metrics').innerHTML = [
-    ['UV-Index', `${Number(daily.uv_index_max[index] || 0).toFixed(1)}`, 'Tagesmaximum'],
+    ['UV-Index', `${Number(daily.uv_index_max[index] || 0).toFixed(1)}`, ''],
     ['Sonnenschein', formatHours(daily.sunshine_duration?.[index]), 'am Tag'],
     ['Wind / Böen', `${round(daily.wind_speed_10m_max[index])} km/h`, `Böen ${round(daily.wind_gusts_10m_max[index])} km/h`],
     ['Sonne', hourLabel(daily.sunrise[index]), `Untergang ${hourLabel(daily.sunset[index])}`]
