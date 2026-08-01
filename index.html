@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#e8edf2" />
+  <meta name="theme-color" content="#0a6fae" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="WetterGarten" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="Kostenlose Open-Source-Wetter-PWA mit 21-Tage-Trend, Regenradar, Pollenanalyse und Gartenkalender." />
   <title>WetterGarten 21</title>
-  <link rel="manifest" href="manifest.webmanifest?v=14" />
-  <link rel="icon" href="icons/icon-192.png?v=14" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=14" />
+  <link rel="manifest" href="manifest.webmanifest?v=15" />
+  <link rel="icon" href="icons/icon-192.png?v=15" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=15" />
   <link rel="preconnect" href="https://api.open-meteo.com" />
   <link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <div class="app-shell">
@@ -29,7 +29,7 @@
       </div>
       <div class="top-actions">
         <button id="favorite-toggle" class="icon-btn neo-button" aria-label="Ort zu Favoriten hinzufügen" aria-pressed="false">☆</button>
-        <button id="theme-toggle" class="icon-btn neo-button" aria-label="Einstellungen">⚙</button>
+        <button id="theme-toggle" class="icon-btn neo-button" aria-label="Einstellungen öffnen" aria-haspopup="dialog">⚙</button>
         <button id="locate-btn" class="icon-btn neo-button" aria-label="Standort verwenden">⌖</button>
       </div>
     </header>
@@ -100,31 +100,6 @@
             </div>
             <div id="forecast-grid" class="forecast-grid"></div>
           </section>
-        </div>
-      </section>
-
-
-      <section id="view-farmer" class="view" aria-labelledby="tab-farmer">
-        <div class="section-heading page-heading">
-          <div><p class="eyebrow">Tradition</p><h2>Bauernregel</h2></div>
-          <span class="pill">heute passend</span>
-        </div>
-        <article id="farmer-card" class="farmer-card neo-raised">
-          <div class="farmer-badge">🌾 Bauernregel des Tages</div>
-          <blockquote id="farmer-quote">„Mairegen bringt Segen.“</blockquote>
-          <p>Traditionelle Wetterweisheit – als Inspiration und Gartenhinweis, nicht als exakte wissenschaftliche Prognose.</p>
-        </article>
-        <div class="farmer-grid">
-          <article class="mini-card neo-raised">
-            <p class="eyebrow">Monat</p>
-            <h3 id="farmer-month-title">Saisonhinweis</h3>
-            <p id="farmer-month-rule" class="muted-copy">Regeln passend zum aktuellen Monat.</p>
-          </article>
-          <article class="mini-card neo-raised">
-            <p class="eyebrow">Wetterlage</p>
-            <h3>Warum diese Regel?</h3>
-            <p id="farmer-weather-note" class="muted-copy">Abgeleitet aus Temperatur, Regen und Wind der nächsten Tage.</p>
-          </article>
         </div>
       </section>
 
@@ -200,7 +175,6 @@
 
     <nav class="bottom-nav neo-raised" aria-label="Hauptnavigation">
       <button id="tab-weather" class="nav-item active" data-view="weather"><span>☀</span><small>Wetter</small></button>
-      <button id="tab-farmer" class="nav-item" data-view="farmer"><span>🌾</span><small>Regel</small></button>
       <button id="tab-radar" class="nav-item" data-view="radar"><span>◉</span><small>Radar</small></button>
       <button id="tab-pollen" class="nav-item" data-view="pollen"><span>❉</span><small>Pollen</small></button>
       <button id="tab-garden" class="nav-item" data-view="garden"><span>♧</span><small>Garten</small></button>
@@ -225,9 +199,22 @@
     <div id="day-hourly-table" class="day-hourly-table"></div>
   </dialog>
 
+  <dialog id="settings-dialog" class="neo-dialog settings-dialog">
+    <button id="settings-dialog-close" class="dialog-close" aria-label="Schließen">×</button>
+    <h2>Einstellungen</h2>
+    <div class="settings-section">
+      <p class="eyebrow">Darstellung</p>
+      <div id="theme-options" class="theme-options neo-inset" role="radiogroup" aria-label="Farbschema">
+        <button type="button" class="theme-option" data-theme-option="blue" role="radio" aria-checked="false">Blau</button>
+        <button type="button" class="theme-option" data-theme-option="light" role="radio" aria-checked="false">Hell</button>
+        <button type="button" class="theme-option" data-theme-option="dark" role="radio" aria-checked="false">Dunkel</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

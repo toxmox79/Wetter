@@ -196,38 +196,6 @@ const PLANTS = [
   { name:'Dill', icon:'🌿', indoor:[], sow:[4,5,6,7,8], harvest:[6,7,8,9,10], notes:'Direktsaat bevorzugt, da Dill ungern verpflanzt wird.' }
 ];
 
-const MONTH_RULES = {
-  1: ['Ist der Januar hell und weiß, wird der Sommer gerne heiß.', 'Januar muss vor Kälte knacken, wenn die Ernte soll gut sacken.'],
-  2: ['Nordwind im Februar bringt beständiges Wetter im Jahr.', 'Wenn es an Lichtmess stürmt und schneit, ist der Frühling nicht mehr weit.'],
-  3: ['Märzenstaub bringt Gras und Laub.', 'Wie das Wetter zu Frühlingsanfang, so hält es sich noch lange an.'],
-  4: ['April, April, der weiß nicht, was er will.', 'Nasser April verspricht der Früchte viel.'],
-  5: ['Mairegen bringt Segen.', 'Ein kühler Mai wird hoch geacht’, hat stets ein gutes Jahr gebracht.'],
-  6: ['Soll gedeihen Korn und Wein, muss im Juni Regen sein.', 'Ist der Juni warm und nass, gibt’s viel Korn und noch mehr Gras.'],
-  7: ['Was Juli und August nicht kochen, lässt der September ungebraten.', 'Im Juli warmer Sonnenschein macht alle Früchte reif und fein.'],
-  8: ['Im August viel Tau, bleibt der Himmel meist blau.', 'Augustregen wirkt wie Gift, wenn er die reifenden Trauben trifft.'],
-  9: ['September warm und klar, verheißt ein gutes nächstes Jahr.', 'Viel Nebel im September über Tal und Höh’, bringt im Winter tiefen Schnee.'],
-  10: ['Oktoberhimmel voller Sterne hat warme Öfen gerne.', 'Ist der Oktober warm und fein, kommt ein scharfer Winter hinterdrein.'],
-  11: ['Wenn im November die Wasser steigen, wird sich ein nasser Winter zeigen.', 'November hell und klar ist übel fürs nächste Jahr.'],
-  12: ['Dezember kalt mit Schnee gibt Korn auf jeder Höh’.', 'Ist der Dezember wild mit Regen, hat das nächste Jahr wenig Segen.']
-};
-
-const DATE_RULES = {
-  '02-02': 'Wenn’s an Lichtmess stürmt und schneit, ist der Frühling nicht mehr weit.',
-  '24-02': 'Matheis bricht das Eis; hat er keins, so macht er eins.',
-  '12-03': 'An Gregor zeigt sich: Tag und Nacht sind gleich.',
-  '23-04': 'Georg und Markus ganz ohne Trost, erschrecken uns sehr oft mit Frost.',
-  '11-05': 'Vor Nachtfrost du nie sicher bist, bis Sophie vorüber ist.',
-  '15-05': 'Die kalte Sophie macht alles hie.',
-  '24-06': 'Vor dem Johannistag man Gerst und Hafer nicht loben mag.',
-  '27-06': 'Das Wetter am Siebenschläfertag sieben Wochen bleiben mag.',
-  '20-07': 'Margaretenregen wird erst nach Monatsfrist sich legen.',
-  '24-08': 'Wie sich das Wetter an Bartholomäus stellt, so ist der ganze Herbst bestellt.',
-  '29-09': 'Regnet’s am Michaelistag, folgt ein milder Winter nach.',
-  '11-11': 'Hat Martini einen weißen Bart, wird der Winter lang und hart.',
-  '30-11': 'Andreas-Schnee tut den Saaten weh.',
-  '04-12': 'Knospen an Sankt Barbara, sind zum Christfest Blüten da.'
-};
-
 function toast(message) {
   const el = $('#toast');
   el.textContent = message;
@@ -275,6 +243,7 @@ async function loadAllData() {
     renderWeather();
     renderGarden();
   }
+  updateRadarModeAvailability();
   updateMapLocation();
   if ($('#view-radar').classList.contains('active')) {
     const radarMode = $('.radar-mode-btn.active')?.dataset.radarMode || 'radar';
@@ -400,35 +369,9 @@ function renderWeather() {
   $('#current-humidity').textContent = `${round(w.current.relative_humidity_2m)}%`;
   $('#current-wind').textContent = `${round(w.current.wind_speed_10m)} km/h`;
   $('#current-rain').textContent = `${Number(w.current.precipitation || 0).toFixed(1)} mm`;
-  renderFarmerRule();
   renderHourly();
   renderDailyOverview();
   renderForecast();
-}
-
-function renderFarmerRule() {
-  const now = new Date();
-  const key = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  let quote = DATE_RULES[key];
-  let reason = 'Aus Temperatur, Regen und Wind der nächsten Tage abgeleitet.';
-  if (!quote && state.weather) {
-    const current = state.weather.current;
-    const next3Rain = state.weather.daily.precipitation_sum.slice(0,3).reduce((a,b)=>a+(b||0),0);
-    const min3 = Math.min(...state.weather.daily.temperature_2m_min.slice(0,3));
-    const max3 = Math.max(...state.weather.daily.temperature_2m_max.slice(0,3));
-    const wind = current.wind_speed_10m || 0;
-    if (min3 <= 1) { quote = 'Frost im Frühling schadet Wein und jungen Dingen.'; reason = 'In den nächsten Tagen drohen niedrige Tiefstwerte.'; }
-    else if (next3Rain >= 18) { quote = 'Regnet’s sanft auf die Saaten, darf der Gärtner Gutes erwarten.'; reason = 'Für die nächsten Tage ist reichlich Regen modelliert.'; }
-    else if (max3 >= 29) { quote = 'Viel Sonne und wenig Regen, heißt den Gärtner fleißig wässern.'; reason = 'Die Prognose zeigt Hitze und eher trockene Bedingungen.'; }
-    else if (wind >= 35) { quote = 'Starker Wind und heller Schein bringen oft beständiges Wetter herein.'; reason = 'Aktuell fällt besonders die Windlage auf.'; }
-  }
-  const monthRules = MONTH_RULES[now.getMonth()+1];
-  const monthRule = monthRules[(now.getDate() + now.getMonth()) % monthRules.length];
-  if (!quote) quote = monthRule;
-  $('#farmer-quote').textContent = `„${quote}“`;
-  if ($('#farmer-month-title')) $('#farmer-month-title').textContent = monthName(now.getMonth()+1);
-  if ($('#farmer-month-rule')) $('#farmer-month-rule').textContent = monthRule;
-  if ($('#farmer-weather-note')) $('#farmer-weather-note').textContent = reason;
 }
 
 function renderHourly() {
@@ -807,7 +750,7 @@ async function loadRadar() {
     focusRadarOnLocation(true);
     $('#radar-status').textContent = 'Messbilder';
     $('#radar-message').hidden = true;
-    $('#radar-source-note').textContent = 'Jetzt zeigt zurückliegende Messbilder. Kartendaten © OpenStreetMap, Radar © RainViewer.';
+    $('#radar-source-note').textContent = liveRadarSourceNote();
     startRadar();
   } catch (error) {
     console.error(error);
@@ -839,6 +782,54 @@ function showRadarFrame(index) {
   $('#radar-slider').value = String(state.radarIndex);
   const frame = state.radarFrames[state.radarIndex];
   $('#radar-time').textContent = frame.label || new Intl.DateTimeFormat('de-DE', { hour:'2-digit', minute:'2-digit' }).format(new Date(frame.time * 1000));
+}
+
+function forecastRadarDate(mode) {
+  const offset = mode === 'tomorrow' ? 1 : 0;
+  return state.weather?.daily?.time?.[offset] || null;
+}
+
+function hasForecastRadarData(mode) {
+  if (mode === 'radar') return true;
+  const hourly = state.weather?.hourly;
+  const date = forecastRadarDate(mode);
+  if (!date || !Array.isArray(hourly?.time)) return false;
+  const precipitation = hourly.precipitation || [];
+  const probability = hourly.precipitation_probability || [];
+  return indicesForDate(date).some(index =>
+    Number.isFinite(Number(precipitation[index])) ||
+    Number.isFinite(Number(probability[index]))
+  );
+}
+
+function forecastRadarLabels() {
+  return [
+    hasForecastRadarData('today') ? 'Heute' : null,
+    hasForecastRadarData('tomorrow') ? 'Morgen' : null
+  ].filter(Boolean);
+}
+
+function liveRadarSourceNote() {
+  const labels = forecastRadarLabels();
+  if (!labels.length) {
+    return 'Jetzt zeigt zurückliegende Messbilder. Für Heute/Morgen liefert die Wetter-API aktuell keine Prognosedaten.';
+  }
+  const labelText = labels.join(' und ');
+  const suffix = labels.length === 1 ? 'ist eine errechnete Niederschlagskarte.' : 'sind errechnete Niederschlagskarten.';
+  return `Jetzt zeigt zurückliegende Messbilder. ${labelText} ${suffix}`;
+}
+
+function updateRadarModeAvailability() {
+  const buttons = $$('.radar-mode-btn');
+  buttons.forEach(button => {
+    const available = hasForecastRadarData(button.dataset.radarMode);
+    button.hidden = !available;
+    button.disabled = !available;
+    button.setAttribute('aria-disabled', String(!available));
+  });
+  const visibleCount = buttons.filter(button => !button.hidden).length || 1;
+  $('#radar-modes')?.setAttribute('data-count', String(visibleCount));
+  $('#radar-source-note').textContent = liveRadarSourceNote();
 }
 
 function radarOffsetLatLng(lat, lon, distanceMeters, angleDeg) {
@@ -921,9 +912,14 @@ function renderForecastRadar(mode = 'today') {
   const daily = state.weather?.daily;
   const hourly = state.weather?.hourly;
   if (!daily || !hourly || !state.map) return;
+  if (!hasForecastRadarData(mode)) {
+    updateRadarModeAvailability();
+    setRadarMode('radar');
+    return;
+  }
 
   const offset = mode === 'tomorrow' ? 1 : 0;
-  const date = daily.time[offset];
+  const date = forecastRadarDate(mode);
   if (!date) {
     clearRadarLayers();
     $('#radar-status').textContent = 'Keine Daten';
@@ -973,13 +969,15 @@ function renderForecastRadar(mode = 'today') {
   $('#radar-status').textContent = `${label} ${rainSum.toFixed(1).replace('.', ',')} mm`;
   $('#radar-message').hidden = !(rainSum < .05 && Number(probability) < 20);
   $('#radar-message').textContent = `${label}: voraussichtlich kaum Regen.`;
-  $('#radar-source-note').textContent = `${label} zeigt radarartige Prognosefelder aus den stündlichen Open-Meteo-Daten.`;
+  $('#radar-source-note').textContent = `${label} ist eine errechnete Niederschlagskarte aus den stündlichen Wetterdaten.`;
   showRadarFrame(state.radarIndex);
   focusRadarOnLocation(true);
   startRadar();
 }
 
 function setRadarMode(mode = 'radar') {
+  updateRadarModeAvailability();
+  if (mode !== 'radar' && !hasForecastRadarData(mode)) mode = 'radar';
   const isRadar = mode === 'radar';
   $$('.radar-mode-btn').forEach(button => {
     const active = button.dataset.radarMode === mode;
@@ -1136,12 +1134,32 @@ function setupFavorites() {
 }
 
 function setupTheme() {
-  const saved = localStorage.getItem('wg-theme');
-  if (saved === 'dark') document.documentElement.dataset.theme = 'dark';
-  $('#theme-toggle').addEventListener('click', () => {
-    const dark = document.documentElement.dataset.theme !== 'dark';
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    localStorage.setItem('wg-theme', dark ? 'dark' : 'light');
+  const themes = ['blue', 'light', 'dark'];
+  const themeColors = { blue:'#0a6fae', light:'#e8edf2', dark:'#202a33' };
+  const themeLabels = { blue:'Blau', light:'Hell', dark:'Dunkel' };
+  const button = $('#theme-toggle');
+  const dialog = $('#settings-dialog');
+  const close = $('#settings-dialog-close');
+  const options = $$('.theme-option');
+  const applyTheme = theme => {
+    const next = themes.includes(theme) ? theme : 'blue';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('wg-theme', next);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[next]);
+    options.forEach(option => {
+      const active = option.dataset.themeOption === next;
+      option.classList.toggle('active', active);
+      option.setAttribute('aria-checked', String(active));
+    });
+    if (button) button.title = `Darstellung: ${themeLabels[next]}`;
+  };
+
+  applyTheme(localStorage.getItem('wg-theme') || 'blue');
+  button?.addEventListener('click', () => dialog?.showModal());
+  close?.addEventListener('click', () => dialog?.close());
+  $('#theme-options')?.addEventListener('click', event => {
+    const option = event.target.closest('[data-theme-option]');
+    if (option) applyTheme(option.dataset.themeOption);
   });
 }
 
@@ -1176,6 +1194,7 @@ function registerPwa() {
 function init() {
   $('#location-label').textContent = currentLocationText();
   updateRadarLocationLabel();
+  updateRadarModeAvailability();
   setupNavigation();
   setupSearch();
   setupGeolocation();

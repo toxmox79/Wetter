@@ -123,12 +123,6 @@ h1 span { color:var(--accent); }
 .metric span { color:var(--muted); font-size:13px; }
 .metric strong { margin-top:3px; font-size:17px; }
 
-.farmer-card { margin-top:24px; border-radius:24px; padding:22px 24px; position:relative; overflow:hidden; }
-.farmer-card::after { content:"🌾"; position:absolute; right:-4px; bottom:-25px; font-size:100px; opacity:.09; transform:rotate(-13deg); }
-.farmer-badge { display:inline-flex; padding:7px 12px; border-radius:999px; color:var(--accent); font-weight:800; background:rgba(79,140,120,.1); }
-.farmer-card blockquote { margin:14px 0 8px; font-size:clamp(20px,4vw,28px); font-weight:750; line-height:1.3; max-width:850px; }
-.farmer-card p { margin:0; color:var(--muted); font-size:13px; }
-
 .section-block { margin-top:18px; }
 .section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 4px 10px; }
 .section-heading h2 { margin:0; font-size:clamp(21px,4vw,28px); letter-spacing:-.6px; }
@@ -242,7 +236,7 @@ h1 span { color:var(--accent); }
 .month-cell.current::after { content:""; position:absolute; inset:-3px; border:2px solid var(--accent-2); border-radius:9px; }
 .plant-notes { margin:12px 0 0; color:var(--muted); font-size:12px; }
 
-.bottom-nav { position:fixed; z-index:1000; bottom:max(12px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(720px,calc(100% - 24px)); height:74px; border-radius:24px; display:grid; grid-template-columns:repeat(5,1fr); padding:8px; }
+.bottom-nav { position:fixed; z-index:1000; bottom:max(12px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(720px,calc(100% - 24px)); height:74px; border-radius:24px; display:grid; grid-template-columns:repeat(4,1fr); padding:8px; }
 .nav-item { border:0; background:transparent; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); }
 .nav-item span { font-size:20px; line-height:1; }
 .nav-item small { font-size:9px; font-weight:800; }
@@ -336,8 +330,7 @@ h1 span { color:var(--accent); }
   .day-metrics { grid-template-columns:repeat(2,1fr); }
   .day-hour-row { grid-template-columns:76px 1.1fr .95fr 76px; padding:9px 10px; }
   .day-hour-row .weather .desc { white-space:normal; }
-  .farmer-grid { grid-template-columns:1fr; }
-  .bottom-nav { height:70px; grid-template-columns:repeat(5,1fr); }
+  .bottom-nav { height:70px; grid-template-columns:repeat(4,1fr); }
   .forecast-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
   #hourly-list { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .daily-overview-row { grid-template-columns:1fr; gap:10px; }
@@ -404,7 +397,6 @@ h1 span { color:var(--accent); }
 .day-hour-row .weather .temp { font-size:20px; }
 .day-hour-row .precip strong { font-size:16px; }
 .day-hour-row .wind strong { font-size:20px; }
-.farmer-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:16px; }
 .mini-card { border-radius:22px; padding:18px; }
 .muted-copy { color:var(--muted); margin:8px 0 0; line-height:1.5; }
 
@@ -936,7 +928,6 @@ h1 span { color:var(--accent); }
 .pollen-day,
 .plant-card,
 .garden-advice,
-.farmer-card,
 .mini-card,
 .advice-card,
 .radar-card {
@@ -1300,4 +1291,226 @@ h1 span { color:var(--accent); }
   #radar-map {
     min-height:330px;
   }
+}
+
+/* Theme modes */
+:root,
+[data-theme="blue"] {
+  --bg:#0a6fae;
+  --surface:#117dc2;
+  --text:#f7fbff;
+  --muted:#c7e3f2;
+  --accent:#f0de29;
+  --accent-2:#a9d4ea;
+  --edge:rgba(255,255,255,.14);
+  --edge-soft:rgba(255,255,255,.08);
+  --app-bg:linear-gradient(180deg, #07588d 0, #0a6fae 145px, #137ec3 100%);
+  --topbar-bg:linear-gradient(rgba(5,60,93,.56), rgba(5,76,117,.7)), repeating-linear-gradient(28deg, rgba(255,255,255,.12) 0 1px, transparent 1px 56px);
+  --topbar-shadow:0 9px 18px rgba(3,45,78,.25);
+  --surface-raised:linear-gradient(145deg, rgba(30,139,203,.96), rgba(13,112,179,.96));
+  --surface-inset:rgba(22,124,190,.78);
+  --button-bg:rgba(255,255,255,.13);
+  --button-active-bg:linear-gradient(145deg, rgba(31,139,203,.96), rgba(10,108,176,.96));
+  --nav-bg:linear-gradient(145deg, rgba(30,139,203,.96), rgba(13,112,179,.96));
+  --dropdown-bg:#0e6fac;
+  --control-bg:rgba(18,99,154,.84);
+  --map-message-bg:rgba(232,244,249,.94);
+  --map-message-text:#263442;
+  --leaflet-filter:saturate(.62) contrast(.94) brightness(1.08);
+  --leaflet-forecast-filter:saturate(.52) contrast(.9) brightness(1.12);
+  --shadow-raised:8px 8px 18px rgba(3,52,88,.36), -8px -8px 18px rgba(89,177,228,.22);
+  --shadow-small:5px 5px 13px rgba(3,52,88,.28), -5px -5px 13px rgba(93,179,228,.18);
+  --shadow-inset:inset 4px 4px 10px rgba(3,52,88,.24), inset -4px -4px 10px rgba(99,185,232,.18);
+}
+
+[data-theme="light"] {
+  --bg:#e8edf2;
+  --surface:#e8edf2;
+  --text:#263442;
+  --muted:#6e7d8b;
+  --accent:#4f8c78;
+  --accent-2:#547f9f;
+  --edge:rgba(255,255,255,.72);
+  --edge-soft:rgba(255,255,255,.52);
+  --app-bg:linear-gradient(180deg, #f5f8fa 0, #e8edf2 145px, #dde6ed 100%);
+  --topbar-bg:linear-gradient(rgba(244,248,251,.88), rgba(226,235,241,.94)), repeating-linear-gradient(28deg, rgba(64,96,120,.08) 0 1px, transparent 1px 56px);
+  --topbar-shadow:0 9px 18px rgba(112,128,142,.2);
+  --surface-raised:linear-gradient(145deg, #f4f7fa, #dce5ec);
+  --surface-inset:rgba(230,237,243,.88);
+  --button-bg:rgba(246,249,251,.9);
+  --button-active-bg:linear-gradient(145deg, #f9fbfd, #dce5ec);
+  --nav-bg:rgba(232,237,242,.94);
+  --dropdown-bg:#eef3f7;
+  --control-bg:rgba(238,244,248,.92);
+  --map-message-bg:rgba(248,251,253,.96);
+  --map-message-text:#263442;
+  --leaflet-filter:saturate(.68) contrast(.96) brightness(1.06);
+  --leaflet-forecast-filter:saturate(.58) contrast(.92) brightness(1.1);
+  --shadow-raised:8px 8px 18px #c4ccd4, -8px -8px 18px #ffffff;
+  --shadow-small:5px 5px 13px #c4ccd4, -5px -5px 13px #ffffff;
+  --shadow-inset:inset 4px 4px 10px #c5ced6, inset -4px -4px 10px #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg:#202a33;
+  --surface:#27323c;
+  --text:#eef4f7;
+  --muted:#a8b6c1;
+  --accent:#f2dc33;
+  --accent-2:#82acd0;
+  --edge:rgba(255,255,255,.1);
+  --edge-soft:rgba(255,255,255,.06);
+  --app-bg:linear-gradient(180deg, #131d25 0, #202a33 145px, #182631 100%);
+  --topbar-bg:linear-gradient(rgba(17,27,35,.82), rgba(19,35,45,.9)), repeating-linear-gradient(28deg, rgba(255,255,255,.07) 0 1px, transparent 1px 56px);
+  --topbar-shadow:0 10px 22px rgba(0,0,0,.28);
+  --surface-raised:linear-gradient(145deg, #2d3944, #1c252d);
+  --surface-inset:rgba(30,39,48,.9);
+  --button-bg:rgba(255,255,255,.08);
+  --button-active-bg:linear-gradient(145deg, #303d49, #1b242c);
+  --nav-bg:rgba(31,41,50,.94);
+  --dropdown-bg:#26323c;
+  --control-bg:rgba(21,31,40,.9);
+  --map-message-bg:rgba(31,41,50,.94);
+  --map-message-text:#eef4f7;
+  --leaflet-filter:saturate(.52) contrast(.9) brightness(.88);
+  --leaflet-forecast-filter:saturate(.52) contrast(.88) brightness(.9);
+  --shadow-raised:8px 8px 18px rgba(6,10,14,.38), -8px -8px 18px rgba(77,93,106,.15);
+  --shadow-small:5px 5px 13px rgba(6,10,14,.34), -5px -5px 13px rgba(77,93,106,.13);
+  --shadow-inset:inset 4px 4px 10px rgba(6,10,14,.34), inset -4px -4px 10px rgba(77,93,106,.13);
+}
+
+html,
+body {
+  background:var(--bg);
+  color:var(--text);
+}
+
+.app-shell {
+  background:var(--app-bg);
+}
+
+.topbar {
+  background:var(--topbar-bg);
+  box-shadow:var(--topbar-shadow);
+}
+
+.neo-raised,
+.hero-weather,
+.daily-overview-row,
+.radar-card,
+.forecast-card,
+.pollen-card,
+.plant-card,
+.garden-advice,
+.mini-card,
+.advice-card {
+  background:var(--surface-raised);
+  border:1px solid var(--edge);
+  box-shadow:var(--shadow-raised);
+}
+
+.neo-inset,
+#hourly-list,
+.radar-modes,
+.radar-legend,
+.theme-options {
+  background:var(--surface-inset);
+  border:1px solid var(--edge-soft);
+  box-shadow:var(--shadow-inset);
+}
+
+.neo-button,
+.icon-btn {
+  background:var(--button-bg);
+  border:1px solid var(--edge);
+  color:var(--text);
+  box-shadow:var(--shadow-small);
+}
+
+.bottom-nav {
+  background:var(--nav-bg);
+  border:1px solid var(--edge);
+  box-shadow:var(--shadow-raised);
+}
+
+.search-panel {
+  background:var(--surface-inset);
+  border:1px solid var(--edge-soft);
+  box-shadow:var(--shadow-inset);
+}
+
+.search-results {
+  background:var(--dropdown-bg);
+  border-color:var(--edge);
+  box-shadow:var(--shadow-raised);
+}
+
+.radar-mode-btn[hidden] {
+  display:none;
+}
+
+.radar-modes[data-count="1"] {
+  grid-template-columns:1fr;
+}
+
+.radar-modes[data-count="2"] {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.radar-modes[data-count="3"] {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+
+.radar-mode-btn.active,
+.theme-option.active {
+  color:var(--accent);
+  background:var(--button-active-bg);
+  box-shadow:var(--shadow-small);
+}
+
+.radar-card .leaflet-tile-pane {
+  filter:var(--leaflet-filter);
+}
+
+.radar-card.forecast-mode .leaflet-tile-pane {
+  filter:var(--leaflet-forecast-filter);
+}
+
+.radar-controls {
+  background:var(--control-bg);
+  border:1px solid var(--edge);
+  box-shadow:var(--shadow-raised);
+}
+
+.map-message {
+  background:var(--map-message-bg);
+  color:var(--map-message-text);
+  border:1px solid var(--edge);
+}
+
+.settings-dialog {
+  max-width:420px;
+}
+
+.settings-section {
+  margin-top:18px;
+}
+
+.theme-options {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+  padding:6px;
+  border-radius:18px;
+}
+
+.theme-option {
+  min-width:0;
+  min-height:42px;
+  border:0;
+  border-radius:14px;
+  background:transparent;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:850;
 }
