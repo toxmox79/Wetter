@@ -6,6 +6,7 @@ const state = {
   weather: null,
   ensemble: null,
   pollen: null,
+  iconD2: null,
   map: null,
   radarBaseLayer: null,
   locationMarker: null,
@@ -15,6 +16,7 @@ const state = {
   radarIndex: 0,
   radarTimer: null,
   radarPlaying: true,
+  deferredInstallPrompt: null,
   forecastFallback: false,
   favorites: (() => {
     try { return JSON.parse(localStorage.getItem('wg-favorites') || '[]'); }
@@ -45,24 +47,35 @@ function updateFavoriteButton() {
   const button = $('#favorite-toggle');
   if (!button) return;
   const active = isCurrentFavorite();
-  button.textContent = active ? '★' : '☆';
+  button.innerHTML = active
+    ? '<span>★</span><strong>Gespeichert</strong><small>entfernen</small>'
+    : '<span>☆</span><strong>Favorit</strong><small>speichern</small>';
   button.classList.toggle('active', active);
   button.setAttribute('aria-pressed', String(active));
   button.setAttribute('aria-label', active ? 'Ort aus Favoriten entfernen' : 'Ort zu Favoriten hinzufügen');
   button.title = active ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen';
 }
 
+function updateLocationPanelTitle() {
+  const title = $('#location-panel-title');
+  if (title) title.textContent = currentLocationText();
+}
+
 function renderFavorites() {
   const bar = $('#favorites-bar');
   const list = $('#favorites-list');
   if (!bar || !list) return;
-  bar.hidden = state.favorites.length === 0;
+  bar.hidden = false;
+  if (!state.favorites.length) {
+    list.innerHTML = '<div class="favorites-empty">Noch keine Favoriten gespeichert.</div>';
+    return;
+  }
   const currentKey = locationKey(state.location);
   list.innerHTML = state.favorites.map(item => {
     const key = locationKey(item);
     const label = [item.name, item.admin1].filter(Boolean).join(', ');
     return `<div class="favorite-chip ${key === currentKey ? 'current' : ''}" data-key="${key}">
-      <button type="button" class="favorite-select" data-favorite-key="${key}" aria-label="${escapeHtml(label)} öffnen">${escapeHtml(item.name)}</button>
+      <button type="button" class="favorite-select" data-favorite-key="${key}" aria-label="${escapeHtml(label)} öffnen"><strong>${escapeHtml(item.name)}</strong>${item.admin1 ? `<small>${escapeHtml(item.admin1)}</small>` : ''}</button>
       <button type="button" class="favorite-remove" data-remove-key="${key}" aria-label="${escapeHtml(label)} aus Favoriten entfernen">×</button>
     </div>`;
   }).join('');
@@ -227,6 +240,7 @@ function setLocation(location) {
   };
   localStorage.setItem('wg-location', JSON.stringify(state.location));
   $('#location-label').textContent = currentLocationText();
+  updateLocationPanelTitle();
   updateRadarLocationLabel();
   renderFavorites();
   updateFavoriteButton();
@@ -237,7 +251,7 @@ async function loadAllData() {
   $('#weather-loading').hidden = true;
   $('#weather-content').hidden = false;
   stopRadar();
-  const tasks = [loadWeather(), loadPollen()];
+  const tasks = [loadWeather(), loadPollen(), loadIconD2RadarForecast()];
   await Promise.allSettled(tasks);
   if (state.weather) {
     renderWeather();
@@ -274,6 +288,30 @@ async function loadWeather() {
     } else {
       $('#weather-loading').innerHTML = '<p>Wetterdaten konnten nicht geladen werden. Bitte Internetverbindung prüfen.</p>';
     }
+  }
+}
+
+async function loadIconD2RadarForecast() {
+  state.iconD2 = null;
+  const { latitude, longitude } = state.location;
+  const params = new URLSearchParams({
+    latitude, longitude,
+    minutely_15: 'precipitation',
+    daily: 'precipitation_sum',
+    timezone: 'auto',
+    forecast_days: '2'
+  });
+  try {
+    const data = await fetchJson(`https://api.open-meteo.com/v1/dwd-icon?${params}`, { timeout: 12000 });
+    const times = data?.minutely_15?.time;
+    const precipitation = data?.minutely_15?.precipitation;
+    const hasValues = Array.isArray(times) && Array.isArray(precipitation) &&
+      times.some((time, index) => time && Number.isFinite(Number(precipitation[index])));
+    if (!hasValues) throw new Error('Keine ICON-D2-Niederschlagsdaten');
+    state.iconD2 = data;
+  } catch (error) {
+    console.warn('ICON-D2 radar forecast unavailable', error);
+    state.iconD2 = null;
   }
 }
 
@@ -784,22 +822,28 @@ function showRadarFrame(index) {
   $('#radar-time').textContent = frame.label || new Intl.DateTimeFormat('de-DE', { hour:'2-digit', minute:'2-digit' }).format(new Date(frame.time * 1000));
 }
 
+function iconD2ForecastDates() {
+  const times = state.iconD2?.minutely_15?.time || [];
+  return [...new Set(times.map(time => String(time).slice(0, 10)).filter(Boolean))];
+}
+
 function forecastRadarDate(mode) {
   const offset = mode === 'tomorrow' ? 1 : 0;
-  return state.weather?.daily?.time?.[offset] || null;
+  return iconD2ForecastDates()[offset] || null;
+}
+
+function iconD2PointsForDate(date) {
+  const minutely = state.iconD2?.minutely_15;
+  if (!date || !Array.isArray(minutely?.time) || !Array.isArray(minutely?.precipitation)) return [];
+  return minutely.time.map((time, index) => ({
+    time,
+    precipitation:Number(minutely.precipitation[index])
+  })).filter(point => point.time?.startsWith(date) && Number.isFinite(point.precipitation));
 }
 
 function hasForecastRadarData(mode) {
   if (mode === 'radar') return true;
-  const hourly = state.weather?.hourly;
-  const date = forecastRadarDate(mode);
-  if (!date || !Array.isArray(hourly?.time)) return false;
-  const precipitation = hourly.precipitation || [];
-  const probability = hourly.precipitation_probability || [];
-  return indicesForDate(date).some(index =>
-    Number.isFinite(Number(precipitation[index])) ||
-    Number.isFinite(Number(probability[index]))
-  );
+  return iconD2PointsForDate(forecastRadarDate(mode)).length > 0;
 }
 
 function forecastRadarLabels() {
@@ -812,10 +856,10 @@ function forecastRadarLabels() {
 function liveRadarSourceNote() {
   const labels = forecastRadarLabels();
   if (!labels.length) {
-    return 'Jetzt zeigt zurückliegende Messbilder. Für Heute/Morgen liefert die Wetter-API aktuell keine Prognosedaten.';
+    return 'Jetzt zeigt zurückliegende Messbilder. ICON-D2 liefert aktuell keine Prognosedaten für Heute/Morgen.';
   }
   const labelText = labels.join(' und ');
-  const suffix = labels.length === 1 ? 'ist eine errechnete Niederschlagskarte.' : 'sind errechnete Niederschlagskarten.';
+  const suffix = labels.length === 1 ? 'nutzt ICON-D2 als errechnete Niederschlagskarte.' : 'nutzen ICON-D2 als errechnete Niederschlagskarten.';
   return `Jetzt zeigt zurückliegende Messbilder. ${labelText} ${suffix}`;
 }
 
@@ -908,17 +952,47 @@ function createForecastRadarLayer(frame, frameIndex) {
   return L.layerGroup(layers);
 }
 
+function iconD2DailySum(date, frames) {
+  const daily = state.iconD2?.daily;
+  const index = daily?.time?.findIndex(day => day === date) ?? -1;
+  const dailyValue = index >= 0 ? Number(daily.precipitation_sum?.[index]) : NaN;
+  if (Number.isFinite(dailyValue)) return dailyValue;
+  return frames.reduce((sum, frame) => sum + safeNumber(frame.amount), 0);
+}
+
+function buildIconD2RadarFrames(date) {
+  const groups = new Map();
+  iconD2PointsForDate(date).forEach(point => {
+    const minute = Number(point.time.slice(14, 16));
+    const roundedMinute = minute < 30 ? '00' : '30';
+    const key = `${point.time.slice(0, 14)}${roundedMinute}`;
+    if (!groups.has(key)) groups.set(key, { time:key, amount:0, count:0 });
+    const group = groups.get(key);
+    group.amount += point.precipitation;
+    group.count += 1;
+  });
+
+  return [...groups.values()].map(group => {
+    const rate = group.amount * 2;
+    return {
+      kind:'icon-d2',
+      time:group.time,
+      label:group.time.slice(11, 16),
+      amount:group.amount,
+      precipitation:rate,
+      probability:group.amount > .02 ? clamp(42 + rate * 22, 45, 96) : 0
+    };
+  });
+}
+
 function renderForecastRadar(mode = 'today') {
-  const daily = state.weather?.daily;
-  const hourly = state.weather?.hourly;
-  if (!daily || !hourly || !state.map) return;
+  if (!state.map) return;
   if (!hasForecastRadarData(mode)) {
     updateRadarModeAvailability();
     setRadarMode('radar');
     return;
   }
 
-  const offset = mode === 'tomorrow' ? 1 : 0;
   const date = forecastRadarDate(mode);
   if (!date) {
     clearRadarLayers();
@@ -929,16 +1003,9 @@ function renderForecastRadar(mode = 'today') {
   }
 
   const label = mode === 'tomorrow' ? 'Morgen' : 'Heute';
-  const rainSum = Number(daily.precipitation_sum[offset] || 0);
-  const probability = round(daily.precipitation_probability_max[offset]);
-  const indices = indicesForDate(date).filter(index => {
-    const hour = Number(hourly.time[index].slice(11, 13));
-    const precipitation = safeNumber(hourly.precipitation[index]);
-    const probability = safeNumber(hourly.precipitation_probability[index]);
-    return hour % 2 === 0 || precipitation >= .4 || probability >= 55;
-  });
-  const items = indices.length ? indices : indicesForDate(date);
-  if (!items.length) {
+  const frames = buildIconD2RadarFrames(date);
+  const rainSum = iconD2DailySum(date, frames);
+  if (!frames.length) {
     clearRadarLayers();
     $('#radar-status').textContent = 'Keine Daten';
     $('#radar-time').textContent = '–';
@@ -948,28 +1015,20 @@ function renderForecastRadar(mode = 'today') {
   }
 
   clearRadarLayers();
-  state.radarFrames = items.map(index => {
-    const time = hourly.time[index];
-    return {
-      kind:'forecast',
-      label:formatShortHour(Number(time.slice(11, 13))),
-      precipitation:safeNumber(hourly.precipitation[index]),
-      probability:safeNumber(hourly.precipitation_probability[index])
-    };
-  });
+  state.radarFrames = frames;
   state.radarLayers = state.radarFrames.map(createForecastRadarLayer);
   state.radarLayerMode = mode;
   state.radarIndex = state.radarFrames.reduce((best, frame, index, frames) => {
-    const score = frame.precipitation * 3 + frame.probability / 100;
-    const bestScore = frames[best].precipitation * 3 + frames[best].probability / 100;
+    const score = frame.amount * 8 + frame.precipitation * 2 + frame.probability / 100;
+    const bestScore = frames[best].amount * 8 + frames[best].precipitation * 2 + frames[best].probability / 100;
     return score > bestScore ? index : best;
   }, 0);
   $('#radar-slider').max = String(Math.max(0, state.radarFrames.length - 1));
   $('#radar-slider').value = String(state.radarIndex);
   $('#radar-status').textContent = `${label} ${rainSum.toFixed(1).replace('.', ',')} mm`;
-  $('#radar-message').hidden = !(rainSum < .05 && Number(probability) < 20);
-  $('#radar-message').textContent = `${label}: voraussichtlich kaum Regen.`;
-  $('#radar-source-note').textContent = `${label} ist eine errechnete Niederschlagskarte aus den stündlichen Wetterdaten.`;
+  $('#radar-message').hidden = !(rainSum < .05);
+  $('#radar-message').textContent = `${label}: ICON-D2 erwartet kaum Niederschlag.`;
+  $('#radar-source-note').textContent = `${label} nutzt ICON-D2-15-Minuten-Daten als errechnete Niederschlagskarte.`;
   showRadarFrame(state.radarIndex);
   focusRadarOnLocation(true);
   startRadar();
@@ -1049,51 +1108,81 @@ function setupNavigation() {
   }));
 }
 
+function openLocationPanel({ focusSearch = false } = {}) {
+  const panel = $('#location-panel');
+  if (!panel) return;
+  updateLocationPanelTitle();
+  renderFavorites();
+  updateFavoriteButton();
+  panel.hidden = false;
+  $('#location-open')?.setAttribute('aria-expanded', 'true');
+  if (focusSearch) setTimeout(() => $('#location-search')?.focus(), 80);
+}
+
+function closeLocationPanel() {
+  const panel = $('#location-panel');
+  if (!panel) return;
+  panel.hidden = true;
+  $('#location-open')?.setAttribute('aria-expanded', 'false');
+  $('#location-search').value = '';
+  $('#search-results').hidden = true;
+}
+
 function setupSearch() {
   const input = $('#location-search');
-  const panel = $('.search-panel');
+  const resultsBox = $('#search-results');
   const locationTrigger = $('#location-open');
-  const openSearch = () => {
-    if (panel) panel.hidden = false;
-    input.focus();
-  };
   let timer;
-  locationTrigger?.addEventListener('click', openSearch);
+
+  locationTrigger?.setAttribute('aria-expanded', 'false');
+  locationTrigger?.addEventListener('click', () => {
+    const panel = $('#location-panel');
+    if (panel?.hidden) openLocationPanel();
+    else closeLocationPanel();
+  });
   locationTrigger?.addEventListener('keydown', event => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      openSearch();
+      openLocationPanel();
     }
   });
+
+  input.addEventListener('focus', () => openLocationPanel());
   input.addEventListener('input', () => {
     clearTimeout(timer);
     const query = input.value.trim();
-    if (query.length < 2) { $('#search-results').hidden = true; return; }
+    if (query.length < 2) { resultsBox.hidden = true; return; }
     timer = setTimeout(async () => {
       try {
         const data = await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=7&language=de&format=json`);
         const results = data.results || [];
-        $('#search-results').innerHTML = results.length ? results.map((r,i) => `<button class="search-result" data-index="${i}"><span><strong>${escapeHtml(r.name)}</strong><br><small>${escapeHtml([r.admin1,r.country].filter(Boolean).join(', '))}</small></span><small>${round(r.elevation)} m</small></button>`).join('') : '<div class="empty-state">Kein Ort gefunden.</div>';
-        $('#search-results').hidden = false;
+        resultsBox.innerHTML = results.length ? results.map((r,i) => `<button class="search-result" data-index="${i}"><span><strong>${escapeHtml(r.name)}</strong><br><small>${escapeHtml([r.admin1,r.country].filter(Boolean).join(', '))}</small></span><small>${round(r.elevation)} m</small></button>`).join('') : '<div class="empty-state">Kein Ort gefunden.</div>';
+        resultsBox.hidden = false;
         $$('.search-result').forEach(btn => btn.addEventListener('click', () => {
           const r = results[Number(btn.dataset.index)];
-          input.value = '';
-          $('#search-results').hidden = true;
-          if (panel) panel.hidden = true;
+          closeLocationPanel();
           setLocation(r);
         }));
       } catch { toast('Ortssuche derzeit nicht verfügbar'); }
     }, 350);
   });
+
   $('#search-clear').addEventListener('click', () => {
-    input.value = '';
-    $('#search-results').hidden = true;
-    if (panel) panel.hidden = true;
+    if (input.value.trim()) {
+      input.value = '';
+      resultsBox.hidden = true;
+      input.focus();
+    } else {
+      closeLocationPanel();
+    }
+  });
+  $('#location-panel-close')?.addEventListener('click', closeLocationPanel);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeLocationPanel();
   });
   document.addEventListener('click', event => {
-    if (event.target.closest('.search-panel') || event.target.closest('#location-open')) return;
-    $('#search-results').hidden = true;
-    if (panel && !input.value.trim()) panel.hidden = true;
+    if (event.target.closest('#location-panel') || event.target.closest('#location-open')) return;
+    closeLocationPanel();
   });
 }
 
@@ -1108,17 +1197,24 @@ function setupGeolocation() {
         if (reverse.results?.[0]) loc.name = reverse.results[0].name;
       } catch {}
       setLocation(loc);
+      closeLocationPanel();
     }, error => toast(error.code === 1 ? 'Standortfreigabe wurde abgelehnt' : 'Standort konnte nicht ermittelt werden'), { enableHighAccuracy:false, timeout:12000, maximumAge:600000 });
   });
 }
 
 function setupFavorites() {
-  $('#favorite-toggle').addEventListener('click', toggleCurrentFavorite);
+  $('#favorite-toggle').addEventListener('click', () => {
+    toggleCurrentFavorite();
+    renderFavorites();
+  });
   $('#favorites-list').addEventListener('click', event => {
     const select = event.target.closest('[data-favorite-key]');
     if (select) {
       const item = state.favorites.find(favorite => locationKey(favorite) === select.dataset.favoriteKey);
-      if (item) setLocation(item);
+      if (item) {
+        setLocation(item);
+        closeLocationPanel();
+      }
       return;
     }
     const remove = event.target.closest('[data-remove-key]');
@@ -1191,8 +1287,74 @@ function registerPwa() {
   }
 }
 
+function isInstalledPwa() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.navigator.standalone === true;
+}
+
+function showInstallPanel(mode = 'prompt') {
+  const panel = $('#install-panel');
+  const button = $('#install-app-btn');
+  if (!panel || isInstalledPwa() || sessionStorage.getItem('wg-install-dismissed') === '1') return;
+  const manual = mode === 'manual';
+  $('#install-title').textContent = manual ? 'WetterGarten zum Startbildschirm hinzufügen' : 'WetterGarten als App installieren';
+  $('#install-copy').textContent = manual
+    ? 'Öffne das Browser-Menü und wähle “Installieren” oder “Zum Home-Bildschirm”. Danach startet die App ohne Browserleiste.'
+    : 'Installiere die App für Startbildschirm, Offline-Start und Vollbildmodus.';
+  if (button) button.hidden = manual;
+  panel.hidden = false;
+}
+
+function hideInstallPanel({ remember = false } = {}) {
+  const panel = $('#install-panel');
+  if (panel) panel.hidden = true;
+  if (remember) sessionStorage.setItem('wg-install-dismissed', '1');
+}
+
+function setupInstallPrompt() {
+  if (isInstalledPwa()) {
+    hideInstallPanel();
+    return;
+  }
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    state.deferredInstallPrompt = event;
+    showInstallPanel('prompt');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    state.deferredInstallPrompt = null;
+    hideInstallPanel({ remember: true });
+    toast('App wurde installiert');
+  });
+
+  $('#install-app-btn')?.addEventListener('click', async () => {
+    if (!state.deferredInstallPrompt) {
+      showInstallPanel('manual');
+      return;
+    }
+    const promptEvent = state.deferredInstallPrompt;
+    state.deferredInstallPrompt = null;
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice.catch(() => null);
+    if (choice?.outcome === 'accepted') hideInstallPanel({ remember: true });
+  });
+
+  $('#install-dismiss')?.addEventListener('click', () => hideInstallPanel({ remember: true }));
+
+  setTimeout(() => {
+    const isAppleMobile = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const likelyMobile = window.matchMedia('(max-width: 900px)').matches || navigator.maxTouchPoints > 0;
+    if (!state.deferredInstallPrompt && (isAppleMobile || likelyMobile) && !isInstalledPwa()) showInstallPanel('manual');
+  }, 2500);
+}
+
 function init() {
   $('#location-label').textContent = currentLocationText();
+  updateLocationPanelTitle();
   updateRadarLocationLabel();
   updateRadarModeAvailability();
   setupNavigation();
@@ -1203,6 +1365,7 @@ function init() {
   updateFavoriteButton();
   setupTheme();
   setupEvents();
+  setupInstallPrompt();
   registerPwa();
   loadAllData();
 }

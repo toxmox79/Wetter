@@ -7,16 +7,16 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="WetterGarten" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Kostenlose Open-Source-Wetter-PWA mit 21-Tage-Trend, Regenradar, Pollenanalyse und Gartenkalender." />
   <title>WetterGarten 21</title>
-  <link rel="manifest" href="manifest.webmanifest?v=15" />
-  <link rel="icon" href="icons/icon-192.png?v=15" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=15" />
+  <link rel="manifest" href="manifest.webmanifest?v=19" />
+  <link rel="icon" href="icons/icon-192.png?v=19" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=19" />
   <link rel="preconnect" href="https://api.open-meteo.com" />
   <link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=19" />
 </head>
 <body>
   <div class="app-shell">
@@ -28,22 +28,48 @@
         </div>
       </div>
       <div class="top-actions">
-        <button id="favorite-toggle" class="icon-btn neo-button" aria-label="Ort zu Favoriten hinzufügen" aria-pressed="false">☆</button>
         <button id="theme-toggle" class="icon-btn neo-button" aria-label="Einstellungen öffnen" aria-haspopup="dialog">⚙</button>
-        <button id="locate-btn" class="icon-btn neo-button" aria-label="Standort verwenden">⌖</button>
       </div>
     </header>
 
-    <section class="search-panel neo-inset" hidden>
-      <span class="search-icon">⌕</span>
-      <input id="location-search" type="search" placeholder="Ort suchen …" autocomplete="off" />
-      <button id="search-clear" class="clear-btn" aria-label="Suche löschen">×</button>
-      <div id="search-results" class="search-results" hidden></div>
+    <section id="install-panel" class="install-panel neo-raised" hidden>
+      <div>
+        <p class="eyebrow">App installieren</p>
+        <h2 id="install-title">WetterGarten als App nutzen</h2>
+        <p id="install-copy">Installiere die App für Startbildschirm und Vollbildmodus.</p>
+      </div>
+      <div class="install-actions">
+        <button id="install-app-btn" class="install-primary neo-button">Installieren</button>
+        <button id="install-dismiss" class="icon-btn neo-button" aria-label="Installationshinweis schließen">×</button>
+      </div>
     </section>
 
-    <section id="favorites-bar" class="favorites-bar neo-inset" aria-label="Favorisierte Orte" hidden>
-      <span class="favorites-label">★ Favoriten</span>
-      <div id="favorites-list" class="favorites-list"></div>
+    <section id="location-panel" class="location-panel neo-raised" hidden>
+      <div class="location-panel-head">
+        <div>
+          <p class="eyebrow">Ort wählen</p>
+          <h2 id="location-panel-title">Bad Windsheim</h2>
+        </div>
+        <button id="location-panel-close" class="icon-btn neo-button" aria-label="Ortsmenü schließen">×</button>
+      </div>
+      <div class="location-actions">
+        <button id="favorite-toggle" class="location-action neo-button" aria-label="Ort zu Favoriten hinzufügen" aria-pressed="false">
+          <span>☆</span><strong>Favorit</strong><small>speichern</small>
+        </button>
+        <button id="locate-btn" class="location-action neo-button" aria-label="Aktuellen Standort verwenden">
+          <span>⌖</span><strong>Standort</strong><small>verwenden</small>
+        </button>
+      </div>
+      <div class="search-panel neo-inset">
+        <span class="search-icon">⌕</span>
+        <input id="location-search" type="search" placeholder="Ort suchen …" autocomplete="off" />
+        <button id="search-clear" class="clear-btn" aria-label="Suche löschen">×</button>
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+      <section id="favorites-bar" class="favorites-bar neo-inset" aria-label="Favorisierte Orte">
+        <span class="favorites-label">★ Favoriten</span>
+        <div id="favorites-list" class="favorites-list"></div>
+      </section>
     </section>
 
 
@@ -126,7 +152,7 @@
         <div class="radar-legend neo-inset">
           <span>Leicht</span><div class="rain-scale"></div><span>Stark</span>
         </div>
-        <p id="radar-source-note" class="source-note">Jetzt zeigt zurückliegende Messbilder. Heute und Morgen zeigen radarartige Prognosefelder.</p>
+        <p id="radar-source-note" class="source-note">Jetzt zeigt zurückliegende Messbilder. Heute und Morgen nutzen ICON-D2, wenn Daten verfügbar sind.</p>
       </section>
 
       <section id="view-pollen" class="view" aria-labelledby="tab-pollen">
@@ -215,6 +241,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

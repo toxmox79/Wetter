@@ -77,6 +77,24 @@ h1 span { color:var(--accent); }
 #favorite-toggle.active { color:#d59b22; box-shadow:var(--shadow-inset); }
 .icon-btn { width:44px; height:44px; border-radius:15px; display:grid; place-items:center; font-size:20px; flex:0 0 auto; }
 
+.install-panel { position:relative; z-index:870; margin:10px 10px 12px; padding:14px; border-radius:22px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; }
+.install-panel[hidden] { display:none !important; }
+.install-panel h2 { margin:0; font-size:18px; line-height:1.15; }
+.install-panel p:last-child { margin:5px 0 0; color:var(--muted); font-size:12px; line-height:1.35; }
+.install-actions { display:flex; align-items:center; gap:8px; }
+.install-primary { min-height:40px; border-radius:14px; padding:0 14px; color:var(--accent); font-size:13px; font-weight:900; }
+.install-primary[hidden] { display:none !important; }
+
+.location-panel { position:relative; z-index:880; margin:10px 10px 12px; padding:12px; border-radius:22px; display:grid; gap:10px; overflow:visible; }
+.location-panel[hidden] { display:none !important; }
+.location-panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:2px 2px 0; }
+.location-panel-head h2 { margin:0; font-size:20px; line-height:1.15; }
+.location-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.location-action { min-width:0; min-height:66px; border-radius:17px; padding:10px 12px; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:9px; align-items:center; text-align:left; }
+.location-action span { grid-row:1 / 3; width:32px; height:32px; border-radius:12px; display:grid; place-items:center; box-shadow:var(--shadow-inset); }
+.location-action strong { font-size:14px; line-height:1.05; }
+.location-action small { color:var(--muted); font-size:11px; font-weight:750; line-height:1.1; }
+
 .search-panel { position:relative; display:flex; align-items:center; gap:10px; margin:14px 2px 18px; border-radius:16px; padding:0 14px; min-height:50px; z-index:850; }
 .search-panel input, .garden-search input { flex:1; border:0; outline:0; background:transparent; min-width:0; }
 .search-icon { font-size:24px; color:var(--muted); }
@@ -93,9 +111,13 @@ h1 span { color:var(--accent); }
 .favorites-list::-webkit-scrollbar { display:none; }
 .favorite-chip { display:flex; align-items:center; flex:0 0 auto; border-radius:999px; box-shadow:var(--shadow-small); overflow:hidden; }
 .favorite-select, .favorite-remove { border:0; background:transparent; min-height:34px; }
-.favorite-select { padding:7px 7px 7px 13px; font-size:12px; font-weight:800; white-space:nowrap; }
+.favorite-select { padding:7px 7px 7px 13px; font-size:12px; font-weight:800; white-space:nowrap; text-align:left; }
+.favorite-select strong,
+.favorite-select small { display:block; line-height:1.1; }
+.favorite-select small { color:var(--muted); font-size:10px; margin-top:2px; }
 .favorite-remove { width:31px; color:var(--muted); font-size:18px; padding:0 7px 2px 2px; }
 .favorite-chip.current { box-shadow:var(--shadow-inset); color:var(--accent); }
+.favorites-empty { color:var(--muted); font-size:12px; font-weight:750; padding:8px 2px; }
 
 .view { display:none; }
 .view.active { display:block; animation:viewEnter .28s cubic-bezier(.2,.8,.2,1) both; }
@@ -607,8 +629,6 @@ h1 span { color:var(--accent); }
   flex:0 0 auto;
 }
 
-.top-actions #favorite-toggle { display:none; }
-
 .icon-btn {
   width:39px;
   height:39px;
@@ -632,6 +652,37 @@ h1 span { color:var(--accent); }
   box-shadow:none;
 }
 
+.location-panel {
+  margin:8px 10px 10px;
+  border-radius:20px;
+}
+
+.install-panel {
+  margin:8px 10px 10px;
+  grid-template-columns:1fr;
+}
+
+.install-actions {
+  justify-content:space-between;
+}
+
+.install-primary {
+  flex:1;
+}
+
+.location-panel .search-panel {
+  min-height:44px;
+  margin:0;
+  flex-wrap:wrap;
+}
+
+.location-panel .search-results {
+  position:static;
+  flex:0 0 100%;
+  max-height:260px;
+  margin:2px 0 4px;
+}
+
 .search-panel[hidden] {
   display:none !important;
 }
@@ -651,7 +702,7 @@ h1 span { color:var(--accent); }
 
 .favorites-bar {
   min-height:40px;
-  margin:0 10px 8px;
+  margin:0;
   background:rgba(255,255,255,.1);
   box-shadow:none;
 }
@@ -945,10 +996,6 @@ h1 span { color:var(--accent); }
 
   .top-actions {
     gap:5px;
-  }
-
-  .top-actions #locate-btn {
-    display:none;
   }
 
   .hero-weather {
@@ -1290,6 +1337,16 @@ h1 span { color:var(--accent); }
 
   #radar-map {
     min-height:330px;
+  }
+}
+
+@media (display-mode: fullscreen), (display-mode: standalone) {
+  .install-panel {
+    display:none !important;
+  }
+
+  .app-shell {
+    min-height:100dvh;
   }
 }
 
