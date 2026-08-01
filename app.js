@@ -256,7 +256,8 @@ function setLocation(location) {
     admin1: location.admin1 || ''
   };
   localStorage.setItem('wg-location', JSON.stringify(state.location));
-  $('#location-label').textContent = [state.location.name, state.location.admin1].filter(Boolean).join(', ');
+  $('#location-label').textContent = currentLocationText();
+  updateRadarLocationLabel();
   renderFavorites();
   updateFavoriteButton();
   loadAllData();
@@ -398,22 +399,25 @@ function renderFarmerRule() {
   const now = new Date();
   const key = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   let quote = DATE_RULES[key];
+  let reason = 'Aus Temperatur, Regen und Wind der nächsten Tage abgeleitet.';
   if (!quote && state.weather) {
     const current = state.weather.current;
     const next3Rain = state.weather.daily.precipitation_sum.slice(0,3).reduce((a,b)=>a+(b||0),0);
     const min3 = Math.min(...state.weather.daily.temperature_2m_min.slice(0,3));
     const max3 = Math.max(...state.weather.daily.temperature_2m_max.slice(0,3));
     const wind = current.wind_speed_10m || 0;
-    if (min3 <= 1) quote = 'Frost im Frühling schadet Wein und jungen Dingen.';
-    else if (next3Rain >= 18) quote = 'Regnet’s sanft auf die Saaten, darf der Gärtner Gutes erwarten.';
-    else if (max3 >= 29) quote = 'Viel Sonne und wenig Regen, heißt den Gärtner fleißig wässern.';
-    else if (wind >= 35) quote = 'Starker Wind und heller Schein bringen oft beständiges Wetter herein.';
+    if (min3 <= 1) { quote = 'Frost im Frühling schadet Wein und jungen Dingen.'; reason = 'In den nächsten Tagen drohen niedrige Tiefstwerte.'; }
+    else if (next3Rain >= 18) { quote = 'Regnet’s sanft auf die Saaten, darf der Gärtner Gutes erwarten.'; reason = 'Für die nächsten Tage ist reichlich Regen modelliert.'; }
+    else if (max3 >= 29) { quote = 'Viel Sonne und wenig Regen, heißt den Gärtner fleißig wässern.'; reason = 'Die Prognose zeigt Hitze und eher trockene Bedingungen.'; }
+    else if (wind >= 35) { quote = 'Starker Wind und heller Schein bringen oft beständiges Wetter herein.'; reason = 'Aktuell fällt besonders die Windlage auf.'; }
   }
-  if (!quote) {
-    const rules = MONTH_RULES[now.getMonth()+1];
-    quote = rules[(now.getDate() + now.getMonth()) % rules.length];
-  }
+  const monthRules = MONTH_RULES[now.getMonth()+1];
+  const monthRule = monthRules[(now.getDate() + now.getMonth()) % monthRules.length];
+  if (!quote) quote = monthRule;
   $('#farmer-quote').textContent = `„${quote}“`;
+  if ($('#farmer-month-title')) $('#farmer-month-title').textContent = monthName(now.getMonth()+1);
+  if ($('#farmer-month-rule')) $('#farmer-month-rule').textContent = monthRule;
+  if ($('#farmer-weather-note')) $('#farmer-weather-note').textContent = reason;
 }
 
 function renderHourly() {

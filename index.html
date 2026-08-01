@@ -66,12 +66,6 @@
             </div>
           </article>
 
-          <article id="farmer-card" class="farmer-card neo-raised">
-            <div class="farmer-badge">🌾 Bauernregel</div>
-            <blockquote id="farmer-quote">„Mairegen bringt Segen.“</blockquote>
-            <p>Traditionelle Wetterweisheit – keine wissenschaftliche Prognose.</p>
-          </article>
-
           <section class="section-block">
             <div class="section-heading">
               <div><p class="eyebrow">Heute kompakt</p><h2>Schnellübersicht</h2></div>
@@ -101,6 +95,31 @@
             </div>
             <div id="forecast-grid" class="forecast-grid"></div>
           </section>
+        </div>
+      </section>
+
+
+      <section id="view-farmer" class="view" aria-labelledby="tab-farmer">
+        <div class="section-heading page-heading">
+          <div><p class="eyebrow">Tradition</p><h2>Bauernregel</h2></div>
+          <span class="pill">heute passend</span>
+        </div>
+        <article id="farmer-card" class="farmer-card neo-raised">
+          <div class="farmer-badge">🌾 Bauernregel des Tages</div>
+          <blockquote id="farmer-quote">„Mairegen bringt Segen.“</blockquote>
+          <p>Traditionelle Wetterweisheit – als Inspiration und Gartenhinweis, nicht als exakte wissenschaftliche Prognose.</p>
+        </article>
+        <div class="farmer-grid">
+          <article class="mini-card neo-raised">
+            <p class="eyebrow">Monat</p>
+            <h3 id="farmer-month-title">Saisonhinweis</h3>
+            <p id="farmer-month-rule" class="muted-copy">Regeln passend zum aktuellen Monat.</p>
+          </article>
+          <article class="mini-card neo-raised">
+            <p class="eyebrow">Wetterlage</p>
+            <h3>Warum diese Regel?</h3>
+            <p id="farmer-weather-note" class="muted-copy">Abgeleitet aus Temperatur, Regen und Wind der nächsten Tage.</p>
+          </article>
         </div>
       </section>
 
@@ -171,6 +190,7 @@
 
     <nav class="bottom-nav neo-raised" aria-label="Hauptnavigation">
       <button id="tab-weather" class="nav-item active" data-view="weather"><span>☀</span><small>Wetter</small></button>
+      <button id="tab-farmer" class="nav-item" data-view="farmer"><span>🌾</span><small>Regel</small></button>
       <button id="tab-radar" class="nav-item" data-view="radar"><span>◉</span><small>Radar</small></button>
       <button id="tab-pollen" class="nav-item" data-view="pollen"><span>❉</span><small>Pollen</small></button>
       <button id="tab-garden" class="nav-item" data-view="garden"><span>♧</span><small>Garten</small></button>
