@@ -7,9 +7,11 @@ const state = {
   ensemble: null,
   pollen: null,
   map: null,
+  radarBaseLayer: null,
   locationMarker: null,
   radarFrames: [],
   radarLayers: [],
+  radarLayerMode: null,
   radarIndex: 0,
   radarTimer: null,
   radarPlaying: true,
@@ -274,7 +276,10 @@ async function loadAllData() {
     renderGarden();
   }
   updateMapLocation();
-  if ($('#view-radar').classList.contains('active')) loadRadar();
+  if ($('#view-radar').classList.contains('active')) {
+    const radarMode = $('.radar-mode-btn.active')?.dataset.radarMode || 'radar';
+    setRadarMode(radarMode);
+  }
 }
 
 async function loadWeather() {
@@ -753,9 +758,11 @@ function createLocationPinIcon() {
 
 function initMap() {
   if (state.map || !window.L) return;
-  state.map = L.map('radar-map', { zoomControl:true, minZoom:3, maxZoom:12 }).setView([state.location.latitude, state.location.longitude], 10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom:19, attribution:'&copy; OpenStreetMap-Mitwirkende'
+  state.map = L.map('radar-map', { zoomControl:false, minZoom:3, maxZoom:12, attributionControl:false }).setView([state.location.latitude, state.location.longitude], 10);
+  state.map.createPane('radarPane');
+  state.map.getPane('radarPane').style.zIndex = 450;
+  state.radarBaseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    subdomains:'abcd', maxZoom:19, attribution:'&copy; OpenStreetMap &copy; CARTO'
   }).addTo(state.map);
   state.locationMarker = L.marker([state.location.latitude, state.location.longitude], {
     icon: createLocationPinIcon(),
@@ -781,16 +788,18 @@ async function loadRadar() {
     $('#radar-message').textContent = 'Die Kartenbibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen.';
     return;
   }
+  clearRadarLayers();
   $('#radar-status').textContent = 'Lädt …';
   try {
     const meta = await fetchJson('https://api.rainviewer.com/public/weather-maps.json');
     const frames = meta?.radar?.past || [];
     if (!frames.length) throw new Error('Keine Radarframes');
-    clearRadarLayers();
     state.radarFrames = frames;
     state.radarLayers = frames.map(frame => L.tileLayer(`${meta.host}${frame.path}/512/{z}/{x}/{y}/2/1_1.png`, {
+      pane:'radarPane',
       tileSize:512, zoomOffset:-1, opacity:0, maxNativeZoom:7, maxZoom:12, attribution:'Radar © RainViewer'
     }).addTo(state.map));
+    state.radarLayerMode = 'radar';
     state.radarIndex = frames.length - 1;
     $('#radar-slider').max = String(frames.length - 1);
     $('#radar-slider').value = String(state.radarIndex);
@@ -798,6 +807,7 @@ async function loadRadar() {
     focusRadarOnLocation(true);
     $('#radar-status').textContent = 'Messbilder';
     $('#radar-message').hidden = true;
+    $('#radar-source-note').textContent = 'Jetzt zeigt zurückliegende Messbilder. Kartendaten © OpenStreetMap, Radar © RainViewer.';
     startRadar();
   } catch (error) {
     console.error(error);
@@ -811,22 +821,198 @@ function clearRadarLayers() {
   state.radarLayers.forEach(layer => state.map?.removeLayer(layer));
   state.radarLayers = [];
   state.radarFrames = [];
+  state.radarLayerMode = null;
 }
 
 function showRadarFrame(index) {
   if (!state.radarLayers.length) return;
   state.radarIndex = clamp(Number(index), 0, state.radarLayers.length - 1);
-  state.radarLayers.forEach((layer, i) => layer.setOpacity(i === state.radarIndex ? .72 : 0));
+  state.radarLayers.forEach((layer, i) => {
+    const visible = i === state.radarIndex;
+    if (layer.setOpacity) {
+      layer.setOpacity(visible ? .62 : 0);
+    } else if (state.map) {
+      if (visible && !state.map.hasLayer(layer)) layer.addTo(state.map);
+      if (!visible && state.map.hasLayer(layer)) state.map.removeLayer(layer);
+    }
+  });
   $('#radar-slider').value = String(state.radarIndex);
   const frame = state.radarFrames[state.radarIndex];
-  $('#radar-time').textContent = new Intl.DateTimeFormat('de-DE', { hour:'2-digit', minute:'2-digit' }).format(new Date(frame.time * 1000));
+  $('#radar-time').textContent = frame.label || new Intl.DateTimeFormat('de-DE', { hour:'2-digit', minute:'2-digit' }).format(new Date(frame.time * 1000));
+}
+
+function radarOffsetLatLng(lat, lon, distanceMeters, angleDeg) {
+  const angle = angleDeg * Math.PI / 180;
+  const latOffset = Math.cos(angle) * distanceMeters / 111320;
+  const lonScale = Math.max(.2, Math.cos(lat * Math.PI / 180));
+  const lonOffset = Math.sin(angle) * distanceMeters / (111320 * lonScale);
+  return [lat + latOffset, lon + lonOffset];
+}
+
+function radarForecastColor(precipitation, probability) {
+  const intensity = Math.max(precipitation, probability / 38);
+  if (intensity >= 12) return '#b53672';
+  if (intensity >= 7) return '#ee7f3b';
+  if (intensity >= 4) return '#e2d747';
+  if (intensity >= 2) return '#56bb78';
+  if (intensity >= .7) return '#2f9ce3';
+  return '#64c9f6';
+}
+
+function createForecastRadarLayer(frame, frameIndex) {
+  const { latitude, longitude } = state.location;
+  const precipitation = safeNumber(frame.precipitation);
+  const probability = safeNumber(frame.probability);
+  const intensity = Math.max(precipitation, probability / 45);
+  const layers = [];
+
+  if (precipitation < .05 && probability < 18) {
+    layers.push(L.circle([latitude, longitude], {
+      pane:'radarPane',
+      radius:7600,
+      stroke:true,
+      color:'#72c8ee',
+      weight:1,
+      opacity:.18,
+      fill:true,
+      fillColor:'#72c8ee',
+      fillOpacity:.035,
+      dashArray:'4 8',
+      className:'forecast-radar-shape'
+    }));
+    return L.layerGroup(layers);
+  }
+
+  const color = radarForecastColor(precipitation, probability);
+  const cells = clamp(Math.ceil(intensity + probability / 26), 2, 7);
+  const baseRadius = 5200 + Math.min(17000, intensity * 2600);
+
+  for (let i = 0; i < cells; i += 1) {
+    const angle = (frameIndex * 41 + i * 73 + probability * 1.7) % 360;
+    const distance = 1800 + i * 2700 + (frameIndex % 4) * 900;
+    const radius = baseRadius * (1.06 - i * .07);
+    const center = radarOffsetLatLng(latitude, longitude, distance, angle);
+    layers.push(L.circle(center, {
+      pane:'radarPane',
+      radius,
+      stroke:false,
+      fill:true,
+      fillColor:color,
+      fillOpacity:clamp(.11 + precipitation / 38 + probability / 700 - i * .012, .08, .36),
+      className:'forecast-radar-shape'
+    }));
+    if (i < 2 && intensity >= 1.1) {
+      layers.push(L.circle(center, {
+        pane:'radarPane',
+        radius:radius * .44,
+        stroke:false,
+        fill:true,
+        fillColor:radarForecastColor(precipitation * 1.7, probability + 18),
+        fillOpacity:clamp(.12 + precipitation / 30, .1, .42),
+        className:'forecast-radar-shape'
+      }));
+    }
+  }
+
+  return L.layerGroup(layers);
+}
+
+function renderForecastRadar(mode = 'today') {
+  const daily = state.weather?.daily;
+  const hourly = state.weather?.hourly;
+  if (!daily || !hourly || !state.map) return;
+
+  const offset = mode === 'tomorrow' ? 1 : 0;
+  const date = daily.time[offset];
+  if (!date) {
+    clearRadarLayers();
+    $('#radar-status').textContent = 'Keine Daten';
+    $('#radar-message').hidden = false;
+    $('#radar-message').textContent = 'Für diesen Tag liegt keine Radar-Prognose vor.';
+    return;
+  }
+
+  const label = mode === 'tomorrow' ? 'Morgen' : 'Heute';
+  const rainSum = Number(daily.precipitation_sum[offset] || 0);
+  const probability = round(daily.precipitation_probability_max[offset]);
+  const indices = indicesForDate(date).filter(index => {
+    const hour = Number(hourly.time[index].slice(11, 13));
+    const precipitation = safeNumber(hourly.precipitation[index]);
+    const probability = safeNumber(hourly.precipitation_probability[index]);
+    return hour % 2 === 0 || precipitation >= .4 || probability >= 55;
+  });
+  const items = indices.length ? indices : indicesForDate(date);
+  if (!items.length) {
+    clearRadarLayers();
+    $('#radar-status').textContent = 'Keine Daten';
+    $('#radar-time').textContent = '–';
+    $('#radar-message').hidden = false;
+    $('#radar-message').textContent = 'Für diesen Tag liegen keine stündlichen Niederschlagsdaten vor.';
+    return;
+  }
+
+  clearRadarLayers();
+  state.radarFrames = items.map(index => {
+    const time = hourly.time[index];
+    return {
+      kind:'forecast',
+      label:formatShortHour(Number(time.slice(11, 13))),
+      precipitation:safeNumber(hourly.precipitation[index]),
+      probability:safeNumber(hourly.precipitation_probability[index])
+    };
+  });
+  state.radarLayers = state.radarFrames.map(createForecastRadarLayer);
+  state.radarLayerMode = mode;
+  state.radarIndex = state.radarFrames.reduce((best, frame, index, frames) => {
+    const score = frame.precipitation * 3 + frame.probability / 100;
+    const bestScore = frames[best].precipitation * 3 + frames[best].probability / 100;
+    return score > bestScore ? index : best;
+  }, 0);
+  $('#radar-slider').max = String(Math.max(0, state.radarFrames.length - 1));
+  $('#radar-slider').value = String(state.radarIndex);
+  $('#radar-status').textContent = `${label} ${rainSum.toFixed(1).replace('.', ',')} mm`;
+  $('#radar-message').hidden = !(rainSum < .05 && Number(probability) < 20);
+  $('#radar-message').textContent = `${label}: voraussichtlich kaum Regen.`;
+  $('#radar-source-note').textContent = `${label} zeigt radarartige Prognosefelder aus den stündlichen Open-Meteo-Daten.`;
+  showRadarFrame(state.radarIndex);
+  focusRadarOnLocation(true);
+  startRadar();
+}
+
+function setRadarMode(mode = 'radar') {
+  const isRadar = mode === 'radar';
+  $$('.radar-mode-btn').forEach(button => {
+    const active = button.dataset.radarMode === mode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+
+  $('.radar-card')?.classList.toggle('forecast-mode', !isRadar);
+
+  if (isRadar) {
+    $('#radar-status').textContent = state.radarLayerMode === 'radar' && state.radarFrames.length ? 'Messbilder' : 'Live';
+    if ($('#view-radar').classList.contains('active')) {
+      initMap();
+      state.map?.invalidateSize();
+      updateMapLocation();
+      if (state.radarLayerMode !== 'radar' || !state.radarFrames.length) loadRadar(); else startRadar();
+    }
+  } else {
+    stopRadar();
+    initMap();
+    state.map?.invalidateSize();
+    updateMapLocation();
+    renderForecastRadar(mode);
+  }
 }
 
 function startRadar() {
+  if (!state.radarLayers.length) return;
   stopRadar();
   state.radarPlaying = true;
   $('#radar-play').textContent = '❚❚';
-  state.radarTimer = setInterval(() => showRadarFrame((state.radarIndex + 1) % state.radarFrames.length), 750);
+  const interval = state.radarLayerMode === 'radar' ? 750 : 1250;
+  state.radarTimer = setInterval(() => showRadarFrame((state.radarIndex + 1) % state.radarFrames.length), interval);
 }
 
 function stopRadar() {
@@ -858,10 +1044,8 @@ function setupNavigation() {
     scrollAppToTop();
     if (view === 'radar') {
       setTimeout(() => {
-        initMap();
-        state.map?.invalidateSize();
-        focusRadarOnLocation(true);
-        if (!state.radarFrames.length) loadRadar(); else { updateMapLocation(); startRadar(); }
+        const radarMode = $('.radar-mode-btn.active')?.dataset.radarMode || 'radar';
+        setRadarMode(radarMode);
       }, 80);
     } else stopRadar();
   }));
@@ -975,6 +1159,10 @@ function setupEvents() {
   });
   $('#radar-play').addEventListener('click', () => state.radarPlaying ? stopRadar() : startRadar());
   $('#radar-slider').addEventListener('input', event => { stopRadar(); showRadarFrame(event.target.value); });
+  $('#radar-modes').addEventListener('click', event => {
+    const button = event.target.closest('[data-radar-mode]');
+    if (button) setRadarMode(button.dataset.radarMode);
+  });
   $('#plant-search').addEventListener('input', renderPlants);
   $('#garden-filter').addEventListener('change', renderPlants);
 }

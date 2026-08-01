@@ -10,13 +10,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="Kostenlose Open-Source-Wetter-PWA mit 21-Tage-Trend, Regenradar, Pollenanalyse und Gartenkalender." />
   <title>WetterGarten 21</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest?v=14" />
+  <link rel="icon" href="icons/icon-192.png?v=14" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=14" />
   <link rel="preconnect" href="https://api.open-meteo.com" />
   <link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 </head>
 <body>
   <div class="app-shell">
@@ -133,6 +133,11 @@
           <div><p class="eyebrow">Niederschlag</p><h2>Regenradar</h2></div>
           <span id="radar-status" class="pill">Live</span>
         </div>
+        <div id="radar-modes" class="radar-modes neo-inset" role="tablist" aria-label="Niederschlag anzeigen">
+          <button type="button" class="radar-mode-btn active" data-radar-mode="radar" aria-pressed="true">Jetzt</button>
+          <button type="button" class="radar-mode-btn" data-radar-mode="today" aria-pressed="false">Heute</button>
+          <button type="button" class="radar-mode-btn" data-radar-mode="tomorrow" aria-pressed="false">Morgen</button>
+        </div>
         <article class="radar-card neo-raised">
           <div id="radar-map" aria-label="Animierte Niederschlagsradarkarte"></div>
           <div id="radar-location-badge" class="radar-location-badge neo-raised"><span class="pin-dot">⌖</span><strong id="radar-location-text">Bad Windsheim</strong></div>
@@ -146,7 +151,7 @@
         <div class="radar-legend neo-inset">
           <span>Leicht</span><div class="rain-scale"></div><span>Stark</span>
         </div>
-        <p class="source-note">Radar zeigt zurückliegende Messbilder. Kartendaten © OpenStreetMap, Radar © RainViewer.</p>
+        <p id="radar-source-note" class="source-note">Jetzt zeigt zurückliegende Messbilder. Heute und Morgen zeigen radarartige Prognosefelder.</p>
       </section>
 
       <section id="view-pollen" class="view" aria-labelledby="tab-pollen">
@@ -223,6 +228,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
