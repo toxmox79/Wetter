@@ -42,12 +42,13 @@
       <div id="favorites-list" class="favorites-list"></div>
     </section>
 
+
     <main>
       <section id="view-weather" class="view active" aria-labelledby="tab-weather">
-        <div id="weather-loading" class="loading-card neo-raised">
+        <div id="weather-loading" class="loading-card neo-raised" hidden aria-hidden="true">
           <div class="spinner"></div><p>Wetterdaten werden geladen …</p>
         </div>
-        <div id="weather-content" hidden>
+        <div id="weather-content">
           <article class="hero-weather neo-raised">
             <div class="hero-main">
               <div id="current-icon" class="weather-icon-large">⛅</div>
@@ -73,10 +74,19 @@
 
           <section class="section-block">
             <div class="section-heading">
-              <div><p class="eyebrow">Nächste Stunden</p><h2>Stundenverlauf</h2></div>
-              <span class="pill">24 h</span>
+              <div><p class="eyebrow">Heute kompakt</p><h2>Schnellübersicht</h2></div>
+              <span class="pill">4 Zeitpunkte</span>
             </div>
             <div id="hourly-list" class="horizontal-list"></div>
+          </section>
+
+
+          <section class="section-block">
+            <div class="section-heading">
+              <div><p class="eyebrow">7 Tage</p><h2>Übersicht</h2></div>
+              <span class="pill">antippbar</span>
+            </div>
+            <div id="daily-overview" class="daily-overview"></div>
           </section>
 
           <section class="section-block">
@@ -101,6 +111,7 @@
         </div>
         <article class="radar-card neo-raised">
           <div id="radar-map" aria-label="Animierte Niederschlagsradarkarte"></div>
+          <div id="radar-location-badge" class="radar-location-badge neo-raised"><span class="pin-dot">⌖</span><strong id="radar-location-text">Bad Windsheim</strong></div>
           <div id="radar-message" class="map-message" hidden></div>
           <div class="radar-controls neo-raised">
             <button id="radar-play" class="icon-btn neo-button" aria-label="Radar abspielen">▶</button>
@@ -175,11 +186,13 @@
 
   <dialog id="day-dialog" class="neo-dialog day-dialog">
     <button id="day-dialog-close" class="dialog-close" aria-label="Schließen">×</button>
-    <p class="eyebrow">Stündliche Vorhersage</p>
+    <p id="day-dialog-location" class="eyebrow">Bad Windsheim</p>
     <h2 id="day-dialog-title">Tagesverlauf</h2>
     <p id="day-dialog-subtitle" class="day-subtitle"></p>
+    <div id="day-periods" class="day-periods"></div>
     <div id="day-dialog-metrics" class="day-metrics"></div>
-    <div id="day-hourly-list" class="horizontal-list day-hourly-list"></div>
+    <div class="day-hourly-head"><h3>Stündliche Übersicht</h3><span>je Stunde</span></div>
+    <div id="day-hourly-table" class="day-hourly-table"></div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

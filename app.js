@@ -93,6 +93,69 @@ const WEATHER_CODES = {
 
 const weatherInfo = code => WEATHER_CODES[Math.round(Number(code))] || ['Unbeständig', '🌥️'];
 
+const pad2 = value => String(value).padStart(2, '0');
+const formatShortHour = hour => `${pad2(hour)}:00`;
+const safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+const formatHours = seconds => {
+  const h = safeNumber(seconds) / 3600;
+  if (h <= 0) return '0 h';
+  return `${(Math.round(h * 10) / 10).toString().replace('.', ',')} h`;
+};
+const formatMinutes = seconds => `${Math.round(safeNumber(seconds) / 60)} min`;
+function indicesForDate(date) {
+  return (state.weather?.hourly?.time || []).map((time, i) => time.slice(0, 10) === date ? i : -1).filter(i => i >= 0);
+}
+function representativeCode(indices) {
+  const hourlyCodes = state.weather?.hourly?.weather_code || [];
+  const counts = new Map();
+  indices.forEach(i => {
+    const code = Math.round(Number(hourlyCodes[i] ?? 0));
+    counts.set(code, (counts.get(code) || 0) + 1);
+  });
+  if (!counts.size) return 0;
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+function pickHourIndex(date, hour) {
+  const hourlyTimes = state.weather?.hourly?.time || [];
+  const key = `${date}T${pad2(hour)}:00`;
+  let index = hourlyTimes.findIndex(time => time.startsWith(key));
+  if (index >= 0) return index;
+  const dateIndices = indicesForDate(date);
+  if (!dateIndices.length) return 0;
+  return dateIndices.reduce((best, idx) => {
+    const currentHour = Number(hourlyTimes[idx].slice(11, 13));
+    const bestHour = Number(hourlyTimes[best].slice(11, 13));
+    return Math.abs(currentHour - hour) < Math.abs(bestHour - hour) ? idx : best;
+  }, dateIndices[0]);
+}
+function segmentIndices(date, startHour, endHour) {
+  return indicesForDate(date).filter(i => {
+    const hour = Number(state.weather.hourly.time[i].slice(11, 13));
+    return hour >= startHour && hour < endHour;
+  });
+}
+function describeSegment(date, label, startHour, endHour, fallbackTemp) {
+  const indices = segmentIndices(date, startHour, endHour);
+  const hourly = state.weather.hourly;
+  const temps = indices.map(i => safeNumber(hourly.temperature_2m[i]));
+  const probs = indices.map(i => safeNumber(hourly.precipitation_probability[i]));
+  const precipitation = indices.reduce((sum, i) => sum + safeNumber(hourly.precipitation[i]), 0);
+  const wind = indices.map(i => safeNumber(hourly.wind_speed_10m[i]));
+  const [condition, icon] = weatherInfo(representativeCode(indices));
+  const maxTemp = temps.length ? Math.max(...temps) : safeNumber(fallbackTemp);
+  const minTemp = temps.length ? Math.min(...temps) : safeNumber(fallbackTemp);
+  return {
+    label,
+    icon,
+    condition,
+    temp: startHour < 6 || startHour >= 18 ? minTemp : maxTemp,
+    tempAlt: startHour < 6 || startHour >= 18 ? maxTemp : minTemp,
+    precipProbability: probs.length ? Math.max(...probs) : 0,
+    precipitation,
+    wind: wind.length ? Math.round(wind.reduce((a, b) => a + b, 0) / wind.length) : 0
+  };
+}
+
 const POLLEN = [
   { key: 'alder_pollen', name: 'Erle', icon: '🌳', thresholds: [1, 10, 50] },
   { key: 'birch_pollen', name: 'Birke', icon: '🌳', thresholds: [1, 10, 50] },
@@ -171,6 +234,7 @@ function toast(message) {
   toast.timer = setTimeout(() => el.classList.remove('show'), 2700);
 }
 
+
 async function fetchJson(url, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeout || 15000);
@@ -199,8 +263,8 @@ function setLocation(location) {
 }
 
 async function loadAllData() {
-  $('#weather-loading').hidden = false;
-  $('#weather-content').hidden = true;
+  $('#weather-loading').hidden = true;
+  $('#weather-content').hidden = false;
   stopRadar();
   const tasks = [loadWeather(), loadPollen()];
   await Promise.allSettled(tasks);
@@ -217,8 +281,8 @@ async function loadWeather() {
   const params = new URLSearchParams({
     latitude, longitude,
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,is_day',
-    hourly: 'temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,relative_humidity_2m',
-    daily: 'weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max',
+    hourly: 'temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,sunshine_duration',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,sunshine_duration',
     timezone: 'auto', forecast_days: '16'
   });
   try {
@@ -326,6 +390,7 @@ function renderWeather() {
   $('#current-rain').textContent = `${Number(w.current.precipitation || 0).toFixed(1)} mm`;
   renderFarmerRule();
   renderHourly();
+  renderDailyOverview();
   renderForecast();
 }
 
@@ -352,23 +417,48 @@ function renderFarmerRule() {
 }
 
 function renderHourly() {
-  const h = state.weather.hourly;
-  const now = Date.now();
-  let start = h.time.findIndex(t => new Date(t).getTime() >= now - 30 * 60 * 1000);
-  if (start < 0) start = 0;
-  const items = h.time.slice(start, start + 24).map((time, offset) => {
-    const i = start + offset;
-    const [, icon] = weatherInfo(h.weather_code[i]);
-    return `<article class="hour-card ${offset === 0 ? 'now' : ''}">
-      <time>${offset === 0 ? 'Jetzt' : hourLabel(time)}</time>
+  const daily = state.weather.daily;
+  const today = daily.time[0];
+  const keyHours = [2, 8, 14, 20];
+  const items = keyHours.map(hour => {
+    const i = pickHourIndex(today, hour);
+    const hourly = state.weather.hourly;
+    const [condition, icon] = weatherInfo(hourly.weather_code[i]);
+    return `<article class="hour-card">
+      <time>${formatShortHour(hour)}</time>
       <div class="hour-icon">${icon}</div>
-      <strong>${round(h.temperature_2m[i])}°</strong>
-      <small>gefühlt ${round(h.apparent_temperature[i])}°</small>
-      <div class="rain">💧 ${round(h.precipitation_probability[i])}%</div>
+      <strong>${round(hourly.temperature_2m[i])}°</strong>
+      <small>${escapeHtml(condition)}</small>
+      <div class="rain">💧 ${round(hourly.precipitation_probability[i])}% · ${Number(hourly.precipitation[i] || 0).toFixed(1)} mm</div>
     </article>`;
   }).join('');
   $('#hourly-list').innerHTML = items;
 }
+
+function renderDailyOverview() {
+  const daily = state.weather.daily;
+  const rows = daily.time.slice(0, 7).map((date, index) => {
+    const [condition, icon] = weatherInfo(daily.weather_code[index]);
+    const dayLabel = index === 0 ? 'Heute' : localeDate(date, { weekday:'short' }).replace('.', '');
+    const sunshine = formatHours(daily.sunshine_duration?.[index]);
+    return `<button type="button" class="daily-overview-row" data-overview-index="${index}" aria-label="${escapeHtml(dayLabel)} ${monthDay(date)} öffnen">
+      <div>
+        <div class="day-name">${escapeHtml(dayLabel)}</div>
+        <span class="day-date">${monthDay(date)}</span>
+      </div>
+      <div class="day-icon">${icon}</div>
+      <div class="day-temp"><span>${round(daily.temperature_2m_min[index])}°</span><strong>${round(daily.temperature_2m_max[index])}°</strong></div>
+      <div class="day-meta">
+        <div class="topline"><span>☀ ${sunshine}</span><span>💧 ${round(daily.precipitation_probability_max[index])}%</span></div>
+        <div class="subline">${Number(daily.precipitation_sum[index] || 0).toFixed(1)} mm · ${escapeHtml(condition)}</div>
+      </div>
+      <div class="day-wind"><strong>${round(daily.wind_speed_10m_max[index])}</strong><span>km/h Wind</span></div>
+      <span class="row-open">Tagesübersicht öffnen ›</span>
+    </button>`;
+  }).join('');
+  $('#daily-overview').innerHTML = rows;
+}
+
 
 function renderForecast() {
   const d = state.weather.daily;
@@ -409,33 +499,62 @@ function openDayDetails(index) {
   }
 
   const date = daily.time[index];
-  const indices = hourly.time.map((time, i) => time.slice(0, 10) === date ? i : -1).filter(i => i >= 0);
+  const indices = indicesForDate(date);
   if (!indices.length) return toast('Für diesen Tag sind keine Stundendaten verfügbar');
 
   const [condition, icon] = weatherInfo(daily.weather_code[index]);
   const fullDate = localeDate(date, { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  $('#day-dialog-location').textContent = currentLocationText();
   $('#day-dialog-title').textContent = `${icon} ${index === 0 ? 'Heute' : fullDate}`;
   $('#day-dialog-subtitle').textContent = `${condition} · ${round(daily.temperature_2m_min[index])}° bis ${round(daily.temperature_2m_max[index])}°`;
+
+  const segments = [
+    describeSegment(date, 'Nacht', 0, 6, daily.temperature_2m_min[index]),
+    describeSegment(date, 'Tag', 6, 18, daily.temperature_2m_max[index]),
+    describeSegment(date, 'Abend', 18, 24, daily.temperature_2m_min[index])
+  ];
+  $('#day-periods').innerHTML = segments.map(segment => `<article class="day-period-card">
+    <div>
+      <div class="label">${segment.label}</div>
+      <div class="icon">${segment.icon}</div>
+      <div class="temp">${round(segment.temp)}°<span>${round(segment.tempAlt)}°</span></div>
+    </div>
+    <div class="meta">
+      <span>${escapeHtml(segment.condition)}</span>
+      <span>💧 ${round(segment.precipProbability)}% · ${segment.precipitation.toFixed(1)} mm</span>
+      <span>🜃 ${round(segment.wind)} km/h</span>
+    </div>
+  </article>`).join('');
+
   $('#day-dialog-metrics').innerHTML = [
-    ['Regenrisiko', `${round(daily.precipitation_probability_max[index])}%`, `${Number(daily.precipitation_sum[index] || 0).toFixed(1)} mm`],
     ['UV-Index', `${Number(daily.uv_index_max[index] || 0).toFixed(1)}`, 'Tagesmaximum'],
-    ['Wind', `${round(daily.wind_speed_10m_max[index])} km/h`, `Böen ${round(daily.wind_gusts_10m_max[index])} km/h`],
+    ['Sonnenschein', formatHours(daily.sunshine_duration?.[index]), 'am Tag'],
+    ['Wind / Böen', `${round(daily.wind_speed_10m_max[index])} km/h`, `Böen ${round(daily.wind_gusts_10m_max[index])} km/h`],
     ['Sonne', hourLabel(daily.sunrise[index]), `Untergang ${hourLabel(daily.sunset[index])}`]
   ].map(([label, value, sub]) => `<div class="day-metric"><span>${label}</span><strong>${value}</strong><small>${sub}</small></div>`).join('');
 
-  $('#day-hourly-list').innerHTML = indices.map(i => {
+  $('#day-hourly-table').innerHTML = indices.map(i => {
     const [, hourIcon] = weatherInfo(hourly.weather_code[i]);
-    return `<article class="hour-card">
-      <time>${hourLabel(hourly.time[i])}</time>
-      <div class="hour-icon">${hourIcon}</div>
-      <strong>${round(hourly.temperature_2m[i])}°</strong>
-      <small>gefühlt ${round(hourly.apparent_temperature[i])}°</small>
-      <div class="rain">💧 ${round(hourly.precipitation_probability[i])}% · ${Number(hourly.precipitation[i] || 0).toFixed(1)} mm</div>
-      <small>Wind ${round(hourly.wind_speed_10m[i])} km/h</small>
+    const fromHour = Number(hourly.time[i].slice(11, 13));
+    const desc = weatherInfo(hourly.weather_code[i])[0];
+    return `<article class="day-hour-row">
+      <div class="time">${formatShortHour(fromHour)}<small>bis ${formatShortHour((fromHour + 1) % 24)}</small></div>
+      <div class="weather">
+        <div class="icon">${hourIcon}</div>
+        <div>
+          <div class="temp">${round(hourly.temperature_2m[i])}°</div>
+          <div class="desc">${escapeHtml(desc)}</div>
+        </div>
+      </div>
+      <div class="precip">
+        <strong>☀ ${formatMinutes(hourly.sunshine_duration?.[i])}</strong>
+        <span>💧 ${round(hourly.precipitation_probability[i])}%</span>
+        <span>${Number(hourly.precipitation[i] || 0).toFixed(1)} mm</span>
+      </div>
+      <div class="wind"><strong>${round(hourly.wind_speed_10m[i])}</strong><span>km/h · Böen ${round(hourly.wind_gusts_10m?.[i])}</span></div>
     </article>`;
   }).join('');
   $('#day-dialog').showModal();
-  $('#day-hourly-list').scrollLeft = 0;
 }
 
 function trendIcon(item) {
@@ -596,27 +715,57 @@ function monthName(month) {
   return new Intl.DateTimeFormat('de-DE',{month:'long'}).format(new Date(2026, month-1, 1));
 }
 
+function currentLocationText() {
+  return [state.location.name, state.location.admin1].filter(Boolean).join(', ');
+}
+
+function updateRadarLocationLabel() {
+  const el = $('#radar-location-text');
+  if (el) el.textContent = currentLocationText();
+}
+
+function focusRadarOnLocation(force = false) {
+  if (!state.map) return;
+  const latlng = [state.location.latitude, state.location.longitude];
+  const zoom = force ? 10 : Math.max(state.map.getZoom() || 0, 10);
+  state.map.setView(latlng, zoom, { animate: !!state.radarFrames.length });
+}
+
+function createLocationPinIcon() {
+  return L.divIcon({
+    className: 'location-pin-marker',
+    html: '<div class="location-pin"><span class="pin-pulse"></span><i></i></div>',
+    iconSize: [22, 30],
+    iconAnchor: [11, 29],
+    popupAnchor: [0, -24]
+  });
+}
+
 function initMap() {
   if (state.map || !window.L) return;
-  state.map = L.map('radar-map', { zoomControl:true, minZoom:3, maxZoom:12 }).setView([state.location.latitude, state.location.longitude], 8);
+  state.map = L.map('radar-map', { zoomControl:true, minZoom:3, maxZoom:12 }).setView([state.location.latitude, state.location.longitude], 10);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom:19, attribution:'&copy; OpenStreetMap-Mitwirkende'
   }).addTo(state.map);
-  state.locationMarker = L.circleMarker([state.location.latitude, state.location.longitude], {
-    radius:7, weight:3, color:'#ffffff', fillColor:'#4f8c78', fillOpacity:1
-  }).addTo(state.map).bindTooltip(state.location.name);
-  setTimeout(() => state.map.invalidateSize(), 100);
+  state.locationMarker = L.marker([state.location.latitude, state.location.longitude], {
+    icon: createLocationPinIcon(),
+    keyboard: false
+  }).addTo(state.map).bindTooltip(state.location.name, { direction:'top', offset:[0, -24] });
+  updateRadarLocationLabel();
+  setTimeout(() => { state.map.invalidateSize(); focusRadarOnLocation(true); }, 120);
 }
 
 function updateMapLocation() {
-  if (!state.map) return;
+  if (!state.map) { updateRadarLocationLabel(); return; }
   const latlng = [state.location.latitude, state.location.longitude];
-  state.map.setView(latlng, state.map.getZoom());
-  state.locationMarker?.setLatLng(latlng).bindTooltip(state.location.name);
+  state.locationMarker?.setLatLng(latlng).bindTooltip(state.location.name, { direction:'top', offset:[0, -24] });
+  updateRadarLocationLabel();
+  focusRadarOnLocation(true);
 }
 
 async function loadRadar() {
   initMap();
+  updateMapLocation();
   if (!state.map) {
     $('#radar-message').hidden = false;
     $('#radar-message').textContent = 'Die Kartenbibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen.';
@@ -636,6 +785,7 @@ async function loadRadar() {
     $('#radar-slider').max = String(frames.length - 1);
     $('#radar-slider').value = String(state.radarIndex);
     showRadarFrame(state.radarIndex);
+    focusRadarOnLocation(true);
     $('#radar-status').textContent = 'Messbilder';
     $('#radar-message').hidden = true;
     startRadar();
@@ -686,7 +836,8 @@ function setupNavigation() {
       setTimeout(() => {
         initMap();
         state.map?.invalidateSize();
-        if (!state.radarFrames.length) loadRadar(); else startRadar();
+        focusRadarOnLocation(true);
+        if (!state.radarFrames.length) loadRadar(); else { updateMapLocation(); startRadar(); }
       }, 80);
     } else stopRadar();
   }));
@@ -772,6 +923,10 @@ function setupEvents() {
     const card = event.target.closest('[data-forecast-index]');
     if (card) openDayDetails(Number(card.dataset.forecastIndex));
   });
+  $('#daily-overview').addEventListener('click', event => {
+    const row = event.target.closest('[data-overview-index]');
+    if (row) openDayDetails(Number(row.dataset.overviewIndex));
+  });
   $('#radar-play').addEventListener('click', () => state.radarPlaying ? stopRadar() : startRadar());
   $('#radar-slider').addEventListener('input', event => { stopRadar(); showRadarFrame(event.target.value); });
   $('#plant-search').addEventListener('input', renderPlants);
@@ -785,7 +940,8 @@ function registerPwa() {
 }
 
 function init() {
-  $('#location-label').textContent = [state.location.name, state.location.admin1].filter(Boolean).join(', ');
+  $('#location-label').textContent = currentLocationText();
+  updateRadarLocationLabel();
   setupNavigation();
   setupSearch();
   setupGeolocation();
