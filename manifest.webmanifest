@@ -1,7 +1,7 @@
 {
-  "name": "WetterGarten 21",
-  "short_name": "WetterGarten",
-  "description": "21-Tage-Wettertrend, Regenradar, Pollenflug und Gartenkalender.",
+  "name": "Wetter App",
+  "short_name": "Wetter App",
+  "description": "Wettervorhersage, Regenradar, Pollenflug und Gartenkalender.",
   "lang": "de-DE",
   "start_url": "./",
   "scope": "./",

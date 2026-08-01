@@ -108,6 +108,11 @@ const WEATHER_CODES = {
 
 const weatherInfo = code => WEATHER_CODES[Math.round(Number(code))] || ['Unbeständig', '🌥️'];
 
+const isFogIcon = icon => String(icon).replace(/\uFE0F/g, '') === '\u{1F32B}';
+const weatherIconHtml = (icon, label = 'Wetter') => isFogIcon(icon)
+  ? `<span class="weather-symbol weather-symbol-fog" role="img" aria-label="${escapeHtml(label)}"><i></i><i></i><i></i></span>`
+  : `<span class="weather-symbol" role="img" aria-label="${escapeHtml(label)}">${escapeHtml(icon)}</span>`;
+
 const pad2 = value => String(value).padStart(2, '0');
 const formatShortHour = hour => `${pad2(hour)}:00`;
 const safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -394,7 +399,7 @@ function renderWeather() {
   $('#weather-loading').hidden = true;
   $('#weather-content').hidden = false;
   const [condition, icon] = weatherInfo(w.current.weather_code);
-  $('#current-icon').textContent = icon;
+  $('#current-icon').innerHTML = weatherIconHtml(icon, condition);
   $('#current-temp').textContent = round(w.current.temperature_2m);
   $('#current-condition').textContent = condition;
   if ($('#current-stamp')) {
@@ -422,7 +427,7 @@ function renderHourly() {
     const [condition, icon] = weatherInfo(hourly.weather_code[i]);
     return `<article class="hour-card">
       <time>${formatShortHour(hour)}</time>
-      <div class="hour-icon">${icon}</div>
+      <div class="hour-icon">${weatherIconHtml(icon, condition)}</div>
       <strong>${round(hourly.temperature_2m[i])}°</strong>
       <small>${escapeHtml(condition)}</small>
       <div class="rain">💧 ${round(hourly.precipitation_probability[i])}% · ${Number(hourly.precipitation[i] || 0).toFixed(1)} mm</div>
@@ -442,7 +447,7 @@ function renderDailyOverview() {
         <div class="day-name">${escapeHtml(dayLabel)}</div>
         <span class="day-date">${monthDay(date)}</span>
       </div>
-      <div class="day-icon">${icon}</div>
+      <div class="day-icon">${weatherIconHtml(icon, condition)}</div>
       <div class="day-temp"><span>${round(daily.temperature_2m_min[index])}°</span><strong>${round(daily.temperature_2m_max[index])}°</strong></div>
       <div class="day-meta">
         <div class="topline"><span>☀ ${sunshine}</span><span>💧 ${round(daily.precipitation_probability_max[index])}%</span></div>
@@ -476,7 +481,7 @@ function renderForecast() {
       <i class="reliability"></i>
       <div class="forecast-day">${item.index === 0 ? 'Heute' : weekday(item.date)}</div>
       <div class="forecast-date">${monthDay(item.date)}</div>
-      <div class="forecast-icon" title="${escapeHtml(condition)}">${icon}</div>
+      <div class="forecast-icon" title="${escapeHtml(condition)}">${weatherIconHtml(icon, condition)}</div>
       <div class="forecast-temp"><strong>${round(item.max)}°</strong><span>${round(item.min)}°</span></div>
       <div class="forecast-rain"><span>💧 ${item.trend ? Number(item.precipitation || 0).toFixed(1)+' mm' : round(item.probability)+'%'}</span><span>${item.trend ? 'Trend' : Number(item.precipitation || 0).toFixed(1)+' mm'}</span></div>
       <div class="confidence">${escapeHtml(confidence)}</div>
@@ -501,7 +506,7 @@ function openDayDetails(index) {
   const [condition, icon] = weatherInfo(daily.weather_code[index]);
   const fullDate = localeDate(date, { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
   $('#day-dialog-location').textContent = currentLocationText();
-  $('#day-dialog-title').textContent = `${icon} ${index === 0 ? 'Heute' : fullDate}`;
+  $('#day-dialog-title').innerHTML = `${weatherIconHtml(icon, condition)} ${escapeHtml(index === 0 ? 'Heute' : fullDate)}`;
   $('#day-dialog-subtitle').textContent = `${condition} · ${round(daily.temperature_2m_min[index])}° bis ${round(daily.temperature_2m_max[index])}°`;
 
   const segments = [
@@ -512,7 +517,7 @@ function openDayDetails(index) {
   $('#day-periods').innerHTML = segments.map(segment => `<article class="day-period-card">
     <div>
       <div class="label">${segment.label}</div>
-      <div class="icon">${segment.icon}</div>
+      <div class="icon">${weatherIconHtml(segment.icon, segment.condition)}</div>
       <div class="temp">${round(segment.temp)}°<span>${round(segment.tempAlt)}°</span></div>
     </div>
     <div class="meta">
@@ -536,7 +541,7 @@ function openDayDetails(index) {
     return `<article class="day-hour-row">
       <div class="time">${formatShortHour(fromHour)}<small>bis ${formatShortHour((fromHour + 1) % 24)}</small></div>
       <div class="weather">
-        <div class="icon">${hourIcon}</div>
+        <div class="icon">${weatherIconHtml(hourIcon, desc)}</div>
         <div>
           <div class="temp">${round(hourly.temperature_2m[i])}°</div>
           <div class="desc">${escapeHtml(desc)}</div>
@@ -894,62 +899,132 @@ function radarForecastColor(precipitation, probability) {
   return '#64c9f6';
 }
 
-function createForecastRadarLayer(frame, frameIndex) {
+function hexToRgb(hex) {
+  const value = hex.replace('#', '');
+  const full = value.length === 3 ? value.split('').map(char => char + char).join('') : value;
+  const number = Number.parseInt(full, 16);
+  return [(number >> 16) & 255, (number >> 8) & 255, number & 255];
+}
+
+function seededRandom(seed) {
+  let value = seed >>> 0;
+  return () => {
+    value += 0x6D2B79F5;
+    let next = value;
+    next = Math.imul(next ^ next >>> 15, next | 1);
+    next ^= next + Math.imul(next ^ next >>> 7, next | 61);
+    return ((next ^ next >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function radarFrameSeed(frame, frameIndex) {
+  const key = `${frame.time}-${frameIndex}-${state.location.latitude.toFixed(3)}-${state.location.longitude.toFixed(3)}`;
+  let seed = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    seed ^= key.charCodeAt(i);
+    seed = Math.imul(seed, 16777619);
+  }
+  return seed >>> 0;
+}
+
+function forecastRadarBounds(precipitation, probability) {
   const { latitude, longitude } = state.location;
+  const radius = clamp(34000 + precipitation * 5200 + probability * 170, 36000, 72000);
+  return L.latLngBounds(
+    radarOffsetLatLng(latitude, longitude, radius, 315),
+    radarOffsetLatLng(latitude, longitude, radius, 135)
+  );
+}
+
+function drawRadarTextureCell(ctx, x, y, length, width, angle, rgb, alpha) {
+  const radius = Math.max(length, width);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+  gradient.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`);
+  gradient.addColorStop(.58, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * .58})`);
+  gradient.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, length, width, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function createForecastRadarTexture(frame, frameIndex, color, intensity) {
   const precipitation = safeNumber(frame.precipitation);
   const probability = safeNumber(frame.probability);
-  const intensity = Math.max(precipitation, probability / 45);
-  const layers = [];
+  const dry = precipitation < .05 && probability < 18;
+  const size = 560;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const rgb = hexToRgb(color);
+  const rand = seededRandom(radarFrameSeed(frame, frameIndex));
+  const bandAngle = ((frameIndex * 17 + probability * 1.8) % 360) * Math.PI / 180;
+  const centerX = size * (.5 + Math.sin(frameIndex * .63) * .055);
+  const centerY = size * (.5 + Math.cos(frameIndex * .51) * .055);
+  const cells = dry ? 18 : clamp(Math.round(36 + intensity * 10 + probability * .45), 40, 118);
+  const spread = dry ? .36 : clamp(.28 + intensity * .018 + probability / 760, .3, .48);
 
-  if (precipitation < .05 && probability < 18) {
-    layers.push(L.circle([latitude, longitude], {
-      pane:'radarPane',
-      radius:7600,
-      stroke:true,
-      color:'#72c8ee',
-      weight:1,
-      opacity:.18,
-      fill:true,
-      fillColor:'#72c8ee',
-      fillOpacity:.035,
-      dashArray:'4 8',
-      className:'forecast-radar-shape'
-    }));
-    return L.layerGroup(layers);
-  }
-
-  const color = radarForecastColor(precipitation, probability);
-  const cells = clamp(Math.ceil(intensity + probability / 26), 2, 7);
-  const baseRadius = 5200 + Math.min(17000, intensity * 2600);
+  ctx.clearRect(0, 0, size, size);
+  ctx.globalCompositeOperation = 'source-over';
 
   for (let i = 0; i < cells; i += 1) {
-    const angle = (frameIndex * 41 + i * 73 + probability * 1.7) % 360;
-    const distance = 1800 + i * 2700 + (frameIndex % 4) * 900;
-    const radius = baseRadius * (1.06 - i * .07);
-    const center = radarOffsetLatLng(latitude, longitude, distance, angle);
-    layers.push(L.circle(center, {
-      pane:'radarPane',
-      radius,
-      stroke:false,
-      fill:true,
-      fillColor:color,
-      fillOpacity:clamp(.11 + precipitation / 38 + probability / 700 - i * .012, .08, .36),
-      className:'forecast-radar-shape'
-    }));
-    if (i < 2 && intensity >= 1.1) {
-      layers.push(L.circle(center, {
-        pane:'radarPane',
-        radius:radius * .44,
-        stroke:false,
-        fill:true,
-        fillColor:radarForecastColor(precipitation * 1.7, probability + 18),
-        fillOpacity:clamp(.12 + precipitation / 30, .1, .42),
-        className:'forecast-radar-shape'
-      }));
+    const along = (rand() - .5) * size * 1.18;
+    const across = (rand() - .5) * size * spread;
+    const x = centerX + Math.cos(bandAngle) * along - Math.sin(bandAngle) * across + (rand() - .5) * 38;
+    const y = centerY + Math.sin(bandAngle) * along + Math.cos(bandAngle) * across + (rand() - .5) * 38;
+    if (x < -55 || x > size + 55 || y < -55 || y > size + 55) continue;
+
+    const length = dry ? 12 + rand() * 22 : 18 + rand() * 54 + intensity * 2.8;
+    const width = dry ? 3 + rand() * 5 : 4 + rand() * 11 + intensity * .75;
+    const alpha = dry
+      ? .018 + rand() * .018
+      : clamp(.036 + intensity * .012 + probability / 2600 + rand() * .052, .028, .17);
+    const angle = bandAngle + (rand() - .5) * .95;
+
+    drawRadarTextureCell(ctx, x, y, length, width, angle, rgb, alpha);
+
+    if (!dry && intensity >= 1.3 && i % 7 === 0) {
+      drawRadarTextureCell(ctx, x + (rand() - .5) * 18, y + (rand() - .5) * 18, length * .36, width * .5, angle, hexToRgb(radarForecastColor(precipitation * 1.7, probability + 18)), alpha * 1.35);
+    }
+
+    if (!dry && i % 5 === 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * .72})`;
+      ctx.lineWidth = clamp(width * .18, .6, 1.8);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-length * .55, (rand() - .5) * width);
+      ctx.quadraticCurveTo(0, (rand() - .5) * width * 1.8, length * .52, (rand() - .5) * width);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
-  return L.layerGroup(layers);
+  return canvas.toDataURL('image/png');
+}
+
+function createForecastRadarLayer(frame, frameIndex) {
+  const precipitation = safeNumber(frame.precipitation);
+  const probability = safeNumber(frame.probability);
+  const intensity = Math.max(precipitation, probability / 45);
+  const color = radarForecastColor(precipitation, probability);
+  const texture = createForecastRadarTexture(frame, frameIndex, color, intensity);
+  const overlay = L.imageOverlay(texture, forecastRadarBounds(precipitation, probability), {
+    pane:'radarPane',
+    opacity:.74,
+    interactive:false,
+    className:'forecast-radar-image',
+    alt:'ICON-D2 Niederschlagsprognose'
+  });
+  return L.layerGroup([overlay]);
 }
 
 function iconD2DailySum(date, frames) {
@@ -1298,7 +1373,7 @@ function showInstallPanel(mode = 'prompt') {
   const button = $('#install-app-btn');
   if (!panel || isInstalledPwa() || sessionStorage.getItem('wg-install-dismissed') === '1') return;
   const manual = mode === 'manual';
-  $('#install-title').textContent = manual ? 'WetterGarten zum Startbildschirm hinzufügen' : 'WetterGarten als App installieren';
+  $('#install-title').textContent = manual ? 'Wetter App zum Startbildschirm hinzufügen' : 'Wetter App installieren';
   $('#install-copy').textContent = manual
     ? 'Öffne das Browser-Menü und wähle “Installieren” oder “Zum Home-Bildschirm”. Danach startet die App ohne Browserleiste.'
     : 'Installiere die App für Startbildschirm, Offline-Start und Vollbildmodus.';

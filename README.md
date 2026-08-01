@@ -1,4 +1,4 @@
-# WetterGarten 21
+# Wetter App
 
 Kostenlose, installierbare Open-Source-Wetter-PWA in neomorphem Design.
 

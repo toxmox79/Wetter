@@ -137,6 +137,12 @@ h1 span { color:var(--accent); }
 .hero-weather { border-radius:26px; padding:18px 18px; display:grid; grid-template-columns:1.05fr .95fr; gap:16px; }
 .hero-main { display:flex; align-items:center; gap:12px; }
 .weather-icon-large { font-size:clamp(52px,10vw,86px); filter:drop-shadow(3px 5px 7px rgba(38,52,66,.16)); }
+.weather-symbol { display:inline-flex; align-items:center; justify-content:center; width:1em; height:1em; font-style:normal; line-height:1; vertical-align:-.08em; }
+.weather-symbol-fog { position:relative; width:1.18em; height:.84em; color:#9fb6c2; filter:drop-shadow(.04em .07em .08em rgba(38,52,66,.14)); }
+.weather-symbol-fog i { position:absolute; height:.105em; border-radius:999px; background:linear-gradient(90deg, transparent 0%, #b8ccd5 18%, #edf4f6 50%, #97aeba 82%, transparent 100%); box-shadow:0 .035em .045em rgba(80,107,122,.16); }
+.weather-symbol-fog i:nth-child(1) { top:.13em; left:.08em; right:.16em; opacity:.92; }
+.weather-symbol-fog i:nth-child(2) { top:.36em; left:.19em; right:.04em; opacity:.78; }
+.weather-symbol-fog i:nth-child(3) { top:.59em; left:.05em; right:.24em; opacity:.66; }
 .eyebrow { margin:0 0 5px; font-size:12px; text-transform:uppercase; letter-spacing:1.3px; color:var(--muted); font-weight:800; }
 .current-temp { font-size:clamp(48px,10vw,74px); font-weight:300; line-height:.95; letter-spacing:-3px; }
 #current-condition { color:var(--muted); margin:8px 0 0; font-weight:600; }
@@ -1283,9 +1289,10 @@ h1 span { color:var(--accent); }
   overflow:visible;
 }
 
-.forecast-radar-shape {
+.forecast-radar-image {
   mix-blend-mode:multiply;
-  filter:drop-shadow(0 7px 12px rgba(18, 78, 118, .14));
+  image-rendering:auto;
+  filter:saturate(1.08) contrast(1.04) drop-shadow(0 7px 12px rgba(18, 78, 118, .12));
 }
 
 .radar-location-badge {
