@@ -242,15 +242,44 @@ h1 span { color:var(--accent); }
 .garden-advice { border-radius:26px; padding:22px; }
 .garden-advice h3 { margin:0 0 10px; font-size:24px; }
 .garden-advice p { color:var(--muted); margin:0; }
+.garden-advice-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:10px; }
+.garden-advice-head span { flex:0 0 auto; padding:7px 10px; border-radius:999px; color:var(--accent); background:rgba(79,140,120,.12); font-size:12px; font-weight:900; }
 .garden-signals { display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
 .signal { padding:7px 10px; border-radius:999px; font-size:12px; font-weight:800; background:rgba(79,140,120,.11); color:var(--accent); }
 .signal.warn { color:var(--warning); background:rgba(217,152,85,.12); }
+.mushroom-now { margin-top:16px; border-radius:18px; padding:14px; display:grid; gap:5px; }
+.mushroom-now strong { font-size:15px; }
+.mushroom-now span { color:var(--text); font-weight:800; line-height:1.35; }
+.mushroom-now small { color:var(--muted); font-size:12px; line-height:1.45; }
+.mushroom-safety-card { border-radius:20px; padding:15px 16px; border:1px solid rgba(200,111,105,.18); color:var(--text); }
+.mushroom-safety-card strong { display:block; margin-bottom:6px; color:var(--danger); font-size:15px; }
+.mushroom-safety-card p { margin:0; color:var(--muted); font-size:12px; line-height:1.5; }
+.garden-now { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin:16px 0; }
+.garden-task-card { border-radius:20px; padding:14px; display:flex; gap:12px; align-items:flex-start; background:var(--surface); box-shadow:var(--shadow-small); border:1px solid var(--edge-soft); }
+.garden-task-card .task-icon { width:34px; height:34px; display:grid; place-items:center; flex:0 0 auto; border-radius:12px; box-shadow:var(--shadow-inset); font-size:18px; }
+.garden-task-card strong { display:block; font-size:15px; line-height:1.2; }
+.garden-task-card small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:800; }
+.garden-task-card p { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.35; }
+.garden-task-card.protect,
+.garden-task-card.prune { border-color:rgba(200,111,105,.24); }
+.garden-category-tabs { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(106px,1fr); gap:8px; overflow-x:auto; margin:18px 0 14px; padding:8px; border-radius:19px; scrollbar-width:none; }
+.garden-category-tabs::-webkit-scrollbar { display:none; }
+.garden-category-btn { min-height:58px; border:0; border-radius:14px; background:transparent; color:var(--muted); display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:7px; padding:8px 10px; text-align:left; }
+.garden-category-btn span { font-size:18px; }
+.garden-category-btn strong { color:inherit; font-size:12px; line-height:1.1; }
+.garden-category-btn small { min-width:24px; height:24px; display:grid; place-items:center; border-radius:999px; background:rgba(107,147,182,.12); color:var(--muted); font-size:10px; font-weight:900; }
+.garden-category-btn.active { color:var(--accent); background:var(--button-active-bg); box-shadow:var(--shadow-small); }
 .garden-tools { display:grid; grid-template-columns:1fr auto; gap:14px; margin:24px 0 16px; }
 .garden-search { display:flex; align-items:center; gap:9px; min-height:52px; border-radius:17px; padding:0 14px; }
 .neo-select { border:0; outline:0; background:var(--surface); border-radius:17px; padding:0 14px; box-shadow:var(--shadow-small); }
 .calendar-legend { display:flex; flex-wrap:wrap; gap:16px; color:var(--muted); font-size:12px; margin:0 4px 16px; }
 .legend-box { width:12px; height:12px; display:inline-block; border-radius:3px; margin-right:5px; vertical-align:-1px; }
-.legend-box.indoor,.month-cell.indoor { background:#9a87bd; }.legend-box.sow,.month-cell.sow { background:var(--accent); }.legend-box.harvest,.month-cell.harvest { background:var(--warning); }
+.legend-box.indoor,.month-cell.indoor { background:#9a87bd; }
+.legend-box.sow,.month-cell.sow { background:var(--accent); }
+.legend-box.plant,.month-cell.plant { background:#5b9bd5; }
+.legend-box.care,.month-cell.care,.month-cell.prune,.month-cell.fertilize,.month-cell.prepare { background:#6f9f8f; }
+.month-cell.protect { background:var(--danger); }
+.legend-box.harvest,.month-cell.harvest,.month-cell.find { background:var(--warning); }
 .plant-list { display:grid; gap:15px; }
 .plant-card { border-radius:22px; padding:17px; box-shadow:var(--shadow-small); }
 .plant-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:13px; }
@@ -260,9 +289,19 @@ h1 span { color:var(--accent); }
 .plant-title small { color:var(--muted); }
 .month-row { display:grid; grid-template-columns:repeat(12,1fr); gap:4px; }
 .month-cell { position:relative; height:25px; display:grid; place-items:center; border-radius:7px; box-shadow:var(--shadow-inset); color:var(--muted); font-size:9px; font-weight:800; }
-.month-cell.indoor,.month-cell.sow,.month-cell.harvest { color:white; box-shadow:none; }
+.month-cell.indoor,.month-cell.sow,.month-cell.plant,.month-cell.care,.month-cell.prune,.month-cell.fertilize,.month-cell.prepare,.month-cell.protect,.month-cell.harvest,.month-cell.find { color:white; box-shadow:none; }
 .month-cell.current::after { content:""; position:absolute; inset:-3px; border:2px solid var(--accent-2); border-radius:9px; }
+.task-chips { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 12px; }
+.task-chip { padding:6px 8px; border-radius:999px; font-size:10px; font-weight:900; color:var(--accent); background:rgba(79,140,120,.11); }
+.task-chip.prune,
+.task-chip.protect { color:var(--danger); background:rgba(200,111,105,.13); }
+.task-chip.harvest,
+.task-chip.find { color:var(--warning); background:rgba(217,152,85,.14); }
 .plant-notes { margin:12px 0 0; color:var(--muted); font-size:12px; }
+.plant-habitat,
+.plant-warning { margin:12px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
+.plant-warning { color:var(--danger); }
+.mushroom-card { border:1px solid rgba(217,152,85,.18); }
 
 .bottom-nav { position:fixed; z-index:1000; bottom:max(12px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(720px,calc(100% - 24px)); height:74px; border-radius:24px; display:grid; grid-template-columns:repeat(4,1fr); padding:8px; }
 .nav-item { border:0; background:transparent; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); }
@@ -343,6 +382,10 @@ h1 span { color:var(--accent); }
   .topbar { top:6px; }
   .hero-weather { grid-template-columns:1fr 1fr; gap:12px; }
   .hero-details { grid-template-columns:repeat(2,1fr); }
+  .garden-advice-head { display:grid; gap:8px; }
+  .garden-advice-head span { justify-self:start; }
+  .garden-now { grid-template-columns:1fr; }
+  .garden-category-tabs { grid-auto-columns:minmax(96px,1fr); }
   .metric { padding:9px 8px; min-height:58px; text-align:center; }
   .metric strong { font-size:13px; }
   .metric span { font-size:10px; }

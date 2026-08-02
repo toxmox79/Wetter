@@ -10,13 +10,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Kostenlose Open-Source-Wetter-App mit 21-Tage-Trend, Regenradar, Pollenanalyse und Gartenkalender." />
   <title>Wetter App</title>
-  <link rel="manifest" href="manifest.webmanifest?v=21" />
-  <link rel="icon" href="icons/icon-192.png?v=21" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=21" />
+  <link rel="manifest" href="manifest.webmanifest?v=26" />
+  <link rel="icon" href="icons/icon-192.png?v=26" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=26" />
   <link rel="preconnect" href="https://api.open-meteo.com" />
   <link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="styles.css?v=21" />
+  <link rel="stylesheet" href="styles.css?v=26" />
 </head>
 <body>
   <div class="app-shell">
@@ -177,23 +177,31 @@
 
       <section id="view-garden" class="view" aria-labelledby="tab-garden">
         <div class="section-heading page-heading">
-          <div><p class="eyebrow">Gartenjahr</p><h2>Aussaat & Ernte</h2></div>
+          <div><p class="eyebrow">Gartenjahr</p><h2>Gartenplaner</h2></div>
           <span id="garden-month" class="pill">Aktuell</span>
         </div>
         <article id="garden-advice" class="garden-advice neo-raised"></article>
+        <div id="garden-now" class="garden-now"></div>
+        <div id="garden-category-tabs" class="garden-category-tabs neo-inset" role="tablist" aria-label="Gartenkategorien"></div>
         <div class="garden-tools">
-          <div class="garden-search neo-inset"><span>⌕</span><input id="plant-search" type="search" placeholder="Gemüse oder Kräuter suchen …" /></div>
-          <select id="garden-filter" class="neo-select" aria-label="Kalender filtern">
+          <div class="garden-search neo-inset"><span>⌕</span><input id="plant-search" type="search" placeholder="Pflanze, Pilz oder Aufgabe suchen …" /></div>
+          <select id="garden-filter" class="neo-select" aria-label="Gartenplaner filtern">
             <option value="current">Jetzt passend</option>
-            <option value="all">Alle Pflanzen</option>
+            <option value="all">Alles anzeigen</option>
+            <option value="care">Pflege jetzt</option>
+            <option value="prune">Schnitt jetzt</option>
             <option value="sow">Jetzt aussäen</option>
+            <option value="plant">Jetzt pflanzen</option>
             <option value="harvest">Jetzt ernten</option>
+            <option value="find">Pilze aktuell</option>
           </select>
         </div>
         <div class="calendar-legend">
           <span><i class="legend-box indoor"></i> Vorkultur</span>
           <span><i class="legend-box sow"></i> Aussaat</span>
-          <span><i class="legend-box harvest"></i> Ernte</span>
+          <span><i class="legend-box plant"></i> Pflanzen</span>
+          <span><i class="legend-box care"></i> Pflege/Schnitt</span>
+          <span><i class="legend-box harvest"></i> Ernte/Fund</span>
         </div>
         <div id="plant-list" class="plant-list"></div>
       </section>
@@ -241,6 +249,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=26"></script>
 </body>
 </html>

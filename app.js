@@ -122,6 +122,34 @@ const formatHours = seconds => {
   return `${(Math.round(h * 10) / 10).toString().replace('.', ',')} h`;
 };
 const formatMinutes = seconds => `${Math.round(safeNumber(seconds) / 60)} min`;
+
+function currentLocationDateHour() {
+  const currentTime = state.weather?.current?.time;
+  const fallback = currentTime?.length >= 13
+    ? { date: currentTime.slice(0, 10), hour: Number(currentTime.slice(11, 13)) }
+    : { date: new Date().toISOString().slice(0, 10), hour: new Date().getHours() };
+  const timezone = state.weather?.timezone || state.location.timezone;
+  if (!timezone) return fallback;
+
+  try {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23'
+    }).formatToParts(new Date()).map(part => [part.type, part.value]));
+    const hour = Number(parts.hour);
+    return {
+      date: `${parts.year}-${parts.month}-${parts.day}`,
+      hour: Number.isFinite(hour) ? hour : fallback.hour
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function indicesForDate(date) {
   return (state.weather?.hourly?.time || []).map((time, i) => time.slice(0, 10) === date ? i : -1).filter(i => i >= 0);
 }
@@ -148,6 +176,30 @@ function pickHourIndex(date, hour) {
     return Math.abs(currentHour - hour) < Math.abs(bestHour - hour) ? idx : best;
   }, dateIndices[0]);
 }
+
+function scrollDayDialogToStartHour(date, index) {
+  const dialog = $('#day-dialog');
+  const table = $('#day-hourly-table');
+  if (!dialog || !table) return;
+
+  const now = currentLocationDateHour();
+  const targetHour = date === now.date || index === 0 ? now.hour : 7;
+  const rows = [...table.querySelectorAll('.day-hour-row')];
+  const target = rows.find(row => Number(row.dataset.hour) === targetHour) ||
+    rows.find(row => Number(row.dataset.hour) > targetHour) ||
+    rows.at(-1);
+  if (!target) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const inset = window.matchMedia('(max-width: 900px)').matches ? 70 : 18;
+      const dialogTop = dialog.getBoundingClientRect().top;
+      const targetTop = target.getBoundingClientRect().top;
+      dialog.scrollBy({ top: targetTop - dialogTop - inset, behavior: 'auto' });
+    });
+  });
+}
+
 function segmentIndices(date, startHour, endHour) {
   return indicesForDate(date).filter(i => {
     const hour = Number(state.weather.hourly.time[i].slice(11, 13));
@@ -185,7 +237,7 @@ const POLLEN = [
   { key: 'olive_pollen', name: 'Olive', icon: '🫒', thresholds: [1, 10, 50] }
 ];
 
-const PLANTS = [
+const LEGACY_PLANTS = [
   { name:'Tomate', icon:'🍅', indoor:[2,3,4], sow:[5,6], harvest:[7,8,9,10], notes:'Warm vorziehen; erst nach den Eisheiligen ins Freie.' },
   { name:'Paprika', icon:'🫑', indoor:[1,2,3], sow:[5,6], harvest:[7,8,9,10], notes:'Lange Kulturzeit, warmer und geschützter Standort.' },
   { name:'Chili', icon:'🌶️', indoor:[1,2,3], sow:[5,6], harvest:[7,8,9,10], notes:'Sehr früh vorziehen; gleichmäßige Wärme bevorzugt.' },
@@ -213,6 +265,121 @@ const PLANTS = [
   { name:'Basilikum', icon:'🌿', indoor:[3,4,5], sow:[5,6,7], harvest:[6,7,8,9], notes:'Wärmeliebend, Spitzen regelmäßig schneiden.' },
   { name:'Dill', icon:'🌿', indoor:[], sow:[4,5,6,7,8], harvest:[6,7,8,9,10], notes:'Direktsaat bevorzugt, da Dill ungern verpflanzt wird.' }
 ];
+
+const gardenTask = (type, months, label, note = '') => ({ type, months, label, note });
+const gt = gardenTask;
+
+const GARDEN_CATEGORIES = [
+  { id:'all', label:'Alles', icon:'☘️' },
+  { id:'vegetable', label:'Gemüse', icon:'🥕' },
+  { id:'fruit', label:'Obst', icon:'🍎' },
+  { id:'herb', label:'Kräuter', icon:'🌿' },
+  { id:'mushroom', label:'Pilze', icon:'🍄' },
+  { id:'flower', label:'Blumen', icon:'🌸' },
+  { id:'trees', label:'Gehölze', icon:'🌳' },
+  { id:'lawn', label:'Rasen', icon:'🌱' },
+  { id:'soil', label:'Boden', icon:'🪱' },
+  { id:'greenhouse', label:'Gewächshaus', icon:'🏡' },
+  { id:'balcony', label:'Balkon', icon:'🪴' }
+];
+
+const GARDEN_TASK_TYPES = {
+  indoor:{ label:'Vorkultur', cls:'indoor' },
+  sow:{ label:'Aussaat', cls:'sow' },
+  plant:{ label:'Pflanzen', cls:'plant' },
+  care:{ label:'Pflege', cls:'care' },
+  prune:{ label:'Schnitt', cls:'prune' },
+  fertilize:{ label:'Düngen', cls:'fertilize' },
+  protect:{ label:'Schützen', cls:'protect' },
+  harvest:{ label:'Ernte', cls:'harvest' },
+  find:{ label:'Fundzeit', cls:'find' },
+  prepare:{ label:'Vorbereiten', cls:'prepare' }
+};
+
+const TASK_SORT = ['protect', 'prune', 'care', 'sow', 'plant', 'indoor', 'fertilize', 'harvest', 'find', 'prepare'];
+const HERB_NAMES = new Set(['Petersilie', 'Basilikum', 'Dill']);
+
+function legacyPlantToGardenItem(plant) {
+  const tasks = [
+    ...(plant.indoor || []).length ? [gt('indoor', plant.indoor, 'Vorziehen')] : [],
+    ...(plant.sow || []).length ? [gt('sow', plant.sow, 'Aussäen oder pflanzen')] : [],
+    ...(plant.harvest || []).length ? [gt('harvest', plant.harvest, 'Ernten')] : []
+  ];
+  return {
+    name:plant.name,
+    icon:plant.icon,
+    category:HERB_NAMES.has(plant.name) ? 'herb' : 'vegetable',
+    tasks,
+    notes:plant.notes
+  };
+}
+
+const EXTRA_GARDEN_ITEMS = [
+  { name:'Pastinake', icon:'🥕', category:'vegetable', tasks:[gt('sow',[3,4,5],'Direktsaat'), gt('care',[5,6,7,8],'Vereinzeln'), gt('harvest',[10,11,12,1,2],'Nach Frost ernten')], notes:'Lange Kulturzeit, dafür sehr winterhart.' },
+  { name:'Rotkohl', icon:'🥬', category:'vegetable', tasks:[gt('indoor',[2,3,4],'Vorziehen'), gt('plant',[4,5,6],'Pflanzen'), gt('care',[6,7,8,9],'Kohlweißling prüfen'), gt('harvest',[9,10,11],'Köpfe ernten')], notes:'Braucht lange Standzeit und gleichmäßige Nährstoffe.' },
+  { name:'Grünkohl', icon:'🥬', category:'vegetable', tasks:[gt('indoor',[4,5],'Vorziehen'), gt('plant',[5,6,7],'Pflanzen'), gt('care',[7,8,9],'Raupen kontrollieren'), gt('harvest',[10,11,12,1,2],'Blätter ernten')], notes:'Robuste Winterkultur; Frost verbessert oft den Geschmack.' },
+  { name:'Stangenbohne', icon:'🫘', category:'vegetable', tasks:[gt('sow',[5,6,7],'An Rankhilfe säen'), gt('care',[6,7,8],'Leiten & gießen'), gt('harvest',[7,8,9,10],'Hülsen ernten')], notes:'Braucht stabile Stangen und regelmäßige Ernte.' },
+  { name:'Mais', icon:'🌽', category:'vegetable', tasks:[gt('indoor',[4],'Vorziehen'), gt('sow',[5,6],'Direktsaat'), gt('care',[6,7,8],'Blockpflanzung prüfen'), gt('harvest',[8,9,10],'Kolben ernten')], notes:'In Gruppen pflanzen, damit die Bestäubung klappt.' },
+  { name:'Sellerie', icon:'🌱', category:'vegetable', tasks:[gt('indoor',[2,3],'Vorziehen'), gt('plant',[5,6],'Pflanzen'), gt('care',[6,7,8,9],'Viel Wasser & Nahrung'), gt('harvest',[9,10,11],'Knollen ernten')], notes:'Nie austrocknen lassen, sonst bleiben Knollen klein.' },
+  { name:'Fenchel', icon:'🌱', category:'vegetable', tasks:[gt('sow',[4,5,6,7,8],'Satzweise säen'), gt('care',[6,7,8,9],'Anhäufeln'), gt('harvest',[7,8,9,10],'Knollen schneiden')], notes:'Bei Hitze schnell schossgefährdet.' },
+  { name:'Pak Choi', icon:'🥬', category:'vegetable', tasks:[gt('sow',[4,5,6,7,8,9],'Aussaat'), gt('care',[5,6,7,8,9],'Erdflöhe kontrollieren'), gt('harvest',[6,7,8,9,10],'Rosetten ernten')], notes:'Schnellwüchsig; für Herbst oft besonders gut.' },
+  { name:'Rucola', icon:'🌿', category:'vegetable', tasks:[gt('sow',[3,4,5,6,7,8,9],'Nachsäen'), gt('care',[5,6,7,8],'Schattieren bei Hitze'), gt('harvest',[4,5,6,7,8,9,10],'Blätter schneiden')], notes:'Nach Schnitt treibt Rucola oft wieder aus.' },
+  { name:'Schnittlauch', icon:'🌿', category:'herb', tasks:[gt('sow',[3,4,5],'Säen oder teilen'), gt('care',[5,6,7,8],'Blüten entfernen'), gt('harvest',[4,5,6,7,8,9,10],'Halme schneiden')], notes:'Nach der Blüte kräftig zurückschneiden.' },
+  { name:'Koriander', icon:'🌿', category:'herb', tasks:[gt('sow',[4,5,6,7,8,9],'Satzweise säen'), gt('harvest',[5,6,7,8,9,10],'Blätter/Samen ernten')], notes:'Schießt bei Hitze schnell; halbschattig säen.' },
+  { name:'Thymian', icon:'🌿', category:'herb', tasks:[gt('plant',[4,5,6],'Pflanzen'), gt('prune',[4,5,8,9],'Leicht zurückschneiden'), gt('harvest',[5,6,7,8,9],'Triebe ernten')], notes:'Mager, sonnig und eher trocken halten.' },
+  { name:'Rosmarin', icon:'🌿', category:'herb', tasks:[gt('plant',[4,5,6],'Pflanzen'), gt('prune',[4,5,8],'Formschnitt'), gt('protect',[11,12,1,2],'Winterschutz'), gt('harvest',[5,6,7,8,9,10],'Triebe schneiden')], notes:'Im Topf vor starkem Frost schützen.' },
+  { name:'Salbei', icon:'🌿', category:'herb', tasks:[gt('plant',[4,5,6],'Pflanzen'), gt('prune',[4,5,8],'Nach Blüte schneiden'), gt('harvest',[5,6,7,8,9],'Blätter ernten')], notes:'Nicht ins alte Holz schneiden.' },
+  { name:'Minze', icon:'🌿', category:'herb', tasks:[gt('plant',[3,4,5,9],'Teilen/Pflanzen'), gt('care',[5,6,7,8],'Ausläufer begrenzen'), gt('harvest',[5,6,7,8,9,10],'Triebe ernten')], notes:'Am besten mit Wurzelsperre oder im Topf kultivieren.' },
+  { name:'Oregano', icon:'🌿', category:'herb', tasks:[gt('plant',[4,5,6],'Pflanzen'), gt('prune',[7,8,9],'Nach Blüte schneiden'), gt('harvest',[6,7,8,9],'Triebe trocknen')], notes:'Kurz vor der Blüte ist das Aroma besonders stark.' },
+  { name:'Erdbeere', icon:'🍓', category:'fruit', tasks:[gt('plant',[3,4,8,9],'Pflanzen'), gt('care',[5,6,7],'Stroh unterlegen'), gt('prune',[7,8],'Alte Blätter schneiden'), gt('harvest',[5,6,7],'Beeren ernten')], notes:'Ausläufer nur behalten, wenn neue Pflanzen gewünscht sind.' },
+  { name:'Himbeere', icon:'🍓', category:'fruit', tasks:[gt('plant',[3,4,10,11],'Pflanzen'), gt('prune',[2,3,8,9,10],'Ruten schneiden'), gt('care',[5,6,7],'Mulchen'), gt('harvest',[6,7,8,9,10],'Beeren pflücken')], notes:'Sommer- und Herbsthimbeeren unterschiedlich schneiden.' },
+  { name:'Brombeere', icon:'🫐', category:'fruit', tasks:[gt('plant',[3,4,10,11],'Pflanzen'), gt('prune',[2,3,8,9],'Abgetragene Ruten schneiden'), gt('care',[5,6,7],'Ruten anbinden'), gt('harvest',[7,8,9,10],'Beeren pflücken')], notes:'Neue und tragende Ruten getrennt leiten.' },
+  { name:'Johannisbeere', icon:'🍇', category:'fruit', tasks:[gt('plant',[3,4,10,11],'Pflanzen'), gt('prune',[2,3,7,8],'Auslichten'), gt('harvest',[6,7,8],'Trauben pflücken')], notes:'Alte Triebe bodennah entfernen, damit junges Holz nachkommt.' },
+  { name:'Stachelbeere', icon:'🫐', category:'fruit', tasks:[gt('plant',[3,4,10,11],'Pflanzen'), gt('prune',[2,3,7,8],'Auslichten'), gt('harvest',[6,7,8],'Beeren ernten')], notes:'Luftiger Aufbau hilft gegen Mehltau.' },
+  { name:'Heidelbeere', icon:'🫐', category:'fruit', tasks:[gt('plant',[3,4,9,10],'In saure Erde pflanzen'), gt('care',[5,6,7,8],'Mit Regenwasser gießen'), gt('harvest',[7,8,9],'Beeren pflücken')], notes:'Braucht sauren Boden und gleichmäßige Feuchte.' },
+  { name:'Apfelbaum', icon:'🍎', category:'fruit', tasks:[gt('plant',[10,11,3],'Pflanzen'), gt('prune',[1,2,3,7,8],'Schnitt'), gt('care',[6,7],'Fruchtbehang ausdünnen'), gt('harvest',[8,9,10,11],'Sortenreif ernten')], notes:'Sommerschnitt bremst starkes Wachstum; Winterschnitt formt.' },
+  { name:'Birnbaum', icon:'🍐', category:'fruit', tasks:[gt('plant',[10,11,3],'Pflanzen'), gt('prune',[1,2,3,7,8],'Schnitt'), gt('harvest',[8,9,10],'Birnen pflücken')], notes:'Früchte oft kurz vor Vollreife pflücken und nachreifen lassen.' },
+  { name:'Kirschbaum', icon:'🍒', category:'fruit', tasks:[gt('plant',[10,11,3],'Pflanzen'), gt('prune',[7,8],'Nach Ernte schneiden'), gt('harvest',[6,7],'Kirschen ernten')], notes:'Kirschen besser im Sommer schneiden, wenn Wunden schneller verheilen.' },
+  { name:'Weinrebe', icon:'🍇', category:'fruit', tasks:[gt('plant',[4,5,10],'Pflanzen'), gt('prune',[1,2,6,7,8],'Schnitt & Ausgeizen'), gt('care',[6,7,8],'Traubenzone auslichten'), gt('harvest',[8,9,10],'Trauben ernten')], notes:'Sonnige, warme Wandlagen sind ideal.' },
+  { name:'Rhabarber', icon:'🌱', category:'fruit', tasks:[gt('plant',[3,4,9,10],'Pflanzen/Teilen'), gt('fertilize',[3,4,7],'Kompost geben'), gt('harvest',[4,5,6],'Stangen drehen')], notes:'Nach Ende Juni ruhen lassen, damit die Pflanze Kraft sammelt.' },
+  { name:'Pfifferling', icon:'🍄', category:'mushroom', tasks:[gt('find',[6,7,8,9,10],'Typische Fundzeit')], habitat:'Moosige Laub- und Nadelwälder, oft nach warm-feuchten Phasen.', warning:'Nicht allein nach Farbe bestimmen; falsche Pfifferlinge und andere Arten können verwirren.', notes:'Fundzeit-Hinweis, keine Essensfreigabe.' },
+  { name:'Steinpilz', icon:'🍄', category:'mushroom', tasks:[gt('find',[7,8,9,10],'Typische Fundzeit')], habitat:'Fichten-, Buchen- und Mischwälder, gerne an Wegrändern.', warning:'Mit Bitterröhrling verwechselbar; Fund immer vollständig prüfen lassen.', notes:'Nach Regen und warmen Tagen besonders aussichtsreich.' },
+  { name:'Maronen-Röhrling', icon:'🍄', category:'mushroom', tasks:[gt('find',[8,9,10,11],'Typische Fundzeit')], habitat:'Saure Nadel- und Mischwälder, oft bei Fichten und Kiefern.', warning:'Röhrlinge dennoch immer vollständig prüfen.', notes:'Häufiger Herbstpilz; feuchte Waldstandorte bevorzugt.' },
+  { name:'Birkenpilz', icon:'🍄', category:'mushroom', tasks:[gt('find',[6,7,8,9,10],'Typische Fundzeit')], habitat:'In der Nähe von Birken, auch an Waldwegen.', warning:'Nur junge, feste Exemplare beachten; alte Pilze verderben schnell.', notes:'Die Baumpartnerschaft ist ein wichtiger Hinweis.' },
+  { name:'Rotkappe', icon:'🍄', category:'mushroom', tasks:[gt('find',[6,7,8,9,10],'Typische Fundzeit')], habitat:'Bei Espen, Birken oder Eichen, je nach Art.', warning:'Artengruppe sicher bestimmen lassen.', notes:'Auffällige Kappenfarbe ersetzt keine Bestimmung.' },
+  { name:'Flockenstieliger Hexenröhrling', icon:'🍄', category:'mushroom', tasks:[gt('find',[5,6,7,8,9,10],'Typische Fundzeit')], habitat:'Laub- und Nadelwälder, Parks, saure Böden.', warning:'Roh giftig; Verwechslungsrisiko mit anderen Röhrlingen.', notes:'Nur mit sicherer Fachkenntnis verwerten.' },
+  { name:'Parasol', icon:'🍄', category:'mushroom', tasks:[gt('find',[7,8,9,10],'Typische Fundzeit')], habitat:'Wiesen, lichte Wälder, Waldränder.', warning:'Kleine Schirmlinge können gefährlich sein; Ring, Stiel und Basis prüfen lassen.', notes:'Nur große, sicher bestimmte Schirmlinge in Betracht ziehen.' },
+  { name:'Krause Glucke', icon:'🍄', category:'mushroom', tasks:[gt('find',[8,9,10,11],'Typische Fundzeit')], habitat:'Am Fuß alter Kiefern oder Fichten.', warning:'Gründlich reinigen; keine alten zerfallenden Fruchtkörper nutzen.', notes:'Oft standorttreu an denselben Bäumen.' },
+  { name:'Totentrompete', icon:'🍄', category:'mushroom', tasks:[gt('find',[8,9,10,11],'Typische Fundzeit')], habitat:'Laubwälder, besonders bei Buche, gerne in Gruppen.', warning:'Dunkle Pilze sind im Laub schwer zu erkennen; nur sicher bestimmte Funde nutzen.', notes:'Trocknet gut, aber Bestimmung bleibt Pflicht.' },
+  { name:'Trompetenpfifferling', icon:'🍄', category:'mushroom', tasks:[gt('find',[8,9,10,11],'Typische Fundzeit')], habitat:'Feuchte moosige Nadel- und Mischwälder.', warning:'Kleine Pilze sorgfältig prüfen lassen.', notes:'Oft später im Jahr als echte Pfifferlinge.' },
+  { name:'Austernseitling', icon:'🍄', category:'mushroom', tasks:[gt('find',[10,11,12,1,2,3],'Typische Fundzeit')], habitat:'An Laubholz, besonders Buche, oft nach Kälteperioden.', warning:'Baumpilze immer frisch prüfen; alte Exemplare sind ungeeignet.', notes:'Winterpilz, wenn andere Arten kaum noch erscheinen.' },
+  { name:'Samtfußrübling', icon:'🍄', category:'mushroom', tasks:[gt('find',[11,12,1,2,3],'Typische Fundzeit')], habitat:'An Laubholzstümpfen und totem Holz.', warning:'Gefährliche Verwechslung mit Gifthäubling möglich.', notes:'Nur mit sehr sicherer Kenntnis sammeln.' },
+  { name:'Speisemorchel', icon:'🍄', category:'mushroom', tasks:[gt('find',[4,5],'Typische Fundzeit')], habitat:'Auwälder, Gärten, Eschenbereiche, Rindenmulchstellen.', warning:'Mit Lorcheln verwechselbar; roh unverträglich.', notes:'Kurze Frühjahrssaison.' },
+  { name:'Schopftintling', icon:'🍄', category:'mushroom', tasks:[gt('find',[5,6,7,8,9,10,11],'Typische Fundzeit')], habitat:'Wiesen, Wegränder, nährstoffreiche Standorte.', warning:'Nur ganz junge weiße Exemplare; zerfließende Pilze nicht nutzen.', notes:'Sehr kurze Haltbarkeit.' },
+  { name:'Wiesenchampignon', icon:'🍄', category:'mushroom', tasks:[gt('find',[6,7,8,9,10],'Typische Fundzeit')], habitat:'Ungedüngte Wiesen und Weiden.', warning:'Lebensgefährliche Verwechslung mit Knollenblätterpilzen möglich.', notes:'Apps/Fotos reichen hier nicht zur Bestimmung.' },
+  { name:'Hallimasch', icon:'🍄', category:'mushroom', tasks:[gt('find',[9,10,11],'Typische Fundzeit')], habitat:'An Holz, Stümpfen und geschwächten Bäumen.', warning:'Roh giftig und nicht für alle verträglich; sichere Artkenntnis nötig.', notes:'Große Büschel im Herbst.' },
+  { name:'Edel-Reizker', icon:'🍄', category:'mushroom', tasks:[gt('find',[8,9,10,11],'Typische Fundzeit')], habitat:'Kiefern- und Fichtenbereiche, je nach Art.', warning:'Milch, Verfärbung und Begleitbaum prüfen lassen.', notes:'Typisch orange Milch, aber Details sind entscheidend.' },
+  { name:'Stockschwämmchen', icon:'🍄', category:'mushroom', tasks:[gt('find',[4,5,6,7,8,9,10,11],'Typische Fundzeit')], habitat:'An Laubholzstümpfen in Büscheln.', warning:'Lebensgefährlich mit Gifthäubling verwechselbar; nur für Experten.', notes:'Nicht für Einsteiger geeignet.' },
+  { name:'Violetter Rötelritterling', icon:'🍄', category:'mushroom', tasks:[gt('find',[9,10,11,12],'Typische Fundzeit')], habitat:'Laubstreu, Kompostnähe, lichte Wälder.', warning:'Violette Farbe allein ist kein Bestimmungsmerkmal.', notes:'Spätherbstlicher Fundhinweis.' },
+  { name:'Judasohr', icon:'🍄', category:'mushroom', tasks:[gt('find',[1,2,3,4,10,11,12],'Typische Fundzeit')], habitat:'Vor allem an Holunder und anderem Laubholz.', warning:'Nur frische, sicher bestimmte Fruchtkörper beachten.', notes:'Kann nach Regen auch im Winter erscheinen.' },
+  { name:'Ringelblume', icon:'🌼', category:'flower', tasks:[gt('sow',[3,4,5,6,7,8],'Direktsaat'), gt('care',[6,7,8,9],'Verblühtes entfernen'), gt('harvest',[6,7,8,9,10],'Blüten sammeln')], notes:'Versamt sich leicht und lockt Nützlinge an.' },
+  { name:'Sonnenblume', icon:'🌻', category:'flower', tasks:[gt('indoor',[3,4],'Vorziehen'), gt('sow',[4,5,6],'Direktsaat'), gt('care',[6,7,8],'Stützen'), gt('harvest',[9,10],'Samenstände ernten')], notes:'Hohe Sorten früh stützen.' },
+  { name:'Dahlie', icon:'🌸', category:'flower', tasks:[gt('plant',[5,6],'Knollen legen'), gt('care',[6,7,8,9],'Ausputzen & stützen'), gt('protect',[10,11],'Knollen ausgraben')], notes:'Frostempfindlich; erst nach den Eisheiligen raus.' },
+  { name:'Lavendel', icon:'💜', category:'flower', tasks:[gt('plant',[4,5,6,9],'Pflanzen'), gt('prune',[3,4,7,8],'Nach Blüte schneiden'), gt('harvest',[6,7,8],'Blüten schneiden')], notes:'Sonnig und durchlässig; nicht ins alte Holz schneiden.' },
+  { name:'Tulpe', icon:'🌷', category:'flower', tasks:[gt('plant',[9,10,11],'Zwiebeln setzen'), gt('care',[4,5],'Laub einziehen lassen')], notes:'Nach der Blüte Laub erst entfernen, wenn es vergilbt ist.' },
+  { name:'Hecke', icon:'🌳', category:'trees', tasks:[gt('prune',[10,11,12,1,2],'Starker Rückschnitt möglich'), gt('care',[3,4,5,6,7,8,9],'Nur schonender Formschnitt'), gt('protect',[3,4,5,6,7,8,9],'Vor Vogelnestern prüfen')], notes:'Vom 1. März bis 30. September keine Hecken roden oder stark zurückschneiden; schonende Pflege bleibt möglich.' },
+  { name:'Rosen', icon:'🌹', category:'trees', tasks:[gt('prune',[3,4],'Frühjahrsschnitt'), gt('care',[6,7,8,9],'Verblühtes entfernen'), gt('fertilize',[3,4,6],'Düngen'), gt('protect',[11,12],'Anhäufeln')], notes:'Schnittzeit meist zur Forsythienblüte; kranke Blätter entfernen.' },
+  { name:'Rasen', icon:'🌱', category:'lawn', tasks:[gt('prepare',[3,4],'Vertikutieren bei Wachstum'), gt('sow',[4,5,9],'Nachsäen'), gt('care',[4,5,6,7,8,9,10],'Mähen'), gt('fertilize',[3,4,6,9],'Düngen')], notes:'Bei Hitze höher mähen und selten, aber durchdringend wässern.' },
+  { name:'Wildblumenwiese', icon:'🌼', category:'lawn', tasks:[gt('sow',[3,4,5,9,10],'Aussaat'), gt('care',[6,7,8,9],'Abschnittsweise mähen'), gt('harvest',[7,8,9],'Saatgut gewinnen')], notes:'Magerer Boden und später Schnitt fördern Blütenvielfalt.' },
+  { name:'Kompost', icon:'🪱', category:'soil', tasks:[gt('care',[1,2,3,4,5,6,7,8,9,10,11,12],'Feuchte prüfen'), gt('prepare',[3,4,9,10],'Umsetzen/Sieben'), gt('fertilize',[3,4,5,9,10],'Reifen Kompost ausbringen')], notes:'Feucht wie ein ausgedrückter Schwamm; grobes Material lockert.' },
+  { name:'Mulch', icon:'🍂', category:'soil', tasks:[gt('care',[4,5,6,7,8,9,10],'Mulchdecke pflegen'), gt('protect',[6,7,8],'Boden vor Hitze schützen')], notes:'Nicht direkt an Stängel häufen; Schnecken im Blick behalten.' },
+  { name:'Jungpflanzen im Gewächshaus', icon:'🏡', category:'greenhouse', tasks:[gt('indoor',[1,2,3,4,5],'Vorziehen'), gt('care',[3,4,5,6,7,8],'Lüften & schattieren'), gt('protect',[3,4,5],'Frostwächter/Vlies')], notes:'An sonnigen Tagen früh lüften, sonst Hitzestau.' },
+  { name:'Gewächshaus-Tomaten', icon:'🏡', category:'greenhouse', tasks:[gt('plant',[4,5],'Pflanzen'), gt('care',[5,6,7,8,9],'Ausgeizen, rütteln, lüften'), gt('harvest',[7,8,9,10],'Ernten')], notes:'Luftfeuchte senken, um Pilzkrankheiten zu vermeiden.' },
+  { name:'Balkonkräuter', icon:'🪴', category:'balcony', tasks:[gt('plant',[4,5,6,7],'Pflanzen'), gt('care',[5,6,7,8,9],'Gießen & Spitzen schneiden'), gt('harvest',[5,6,7,8,9,10],'Ernten')], notes:'Kleine Töpfe trocknen schnell aus; lieber morgens gießen.' },
+  { name:'Kübelpflanzen', icon:'🪴', category:'balcony', tasks:[gt('plant',[4,5],'Umtopfen'), gt('fertilize',[5,6,7,8],'Düngen'), gt('care',[6,7,8,9],'Ausputzen'), gt('protect',[10,11],'Einräumen')], notes:'Untersetzer nach Starkregen leeren, damit keine Staunässe entsteht.' }
+];
+
+const PLANTS = [...LEGACY_PLANTS.map(legacyPlantToGardenItem), ...EXTRA_GARDEN_ITEMS];
 
 function toast(message) {
   const el = $('#toast');
@@ -538,7 +705,7 @@ function openDayDetails(index) {
     const [, hourIcon] = weatherInfo(hourly.weather_code[i]);
     const fromHour = Number(hourly.time[i].slice(11, 13));
     const desc = weatherInfo(hourly.weather_code[i])[0];
-    return `<article class="day-hour-row">
+    return `<article class="day-hour-row" data-hour="${fromHour}">
       <div class="time">${formatShortHour(fromHour)}<small>bis ${formatShortHour((fromHour + 1) % 24)}</small></div>
       <div class="weather">
         <div class="icon">${weatherIconHtml(hourIcon, desc)}</div>
@@ -556,6 +723,7 @@ function openDayDetails(index) {
     </article>`;
   }).join('');
   $('#day-dialog').showModal();
+  scrollDayDialogToStartHour(date, index);
 }
 
 function trendIcon(item) {
@@ -714,6 +882,229 @@ function plantCard(plant, currentMonth) {
 
 function monthName(month) {
   return new Intl.DateTimeFormat('de-DE',{month:'long'}).format(new Date(2026, month-1, 1));
+}
+
+function currentGardenMonth() {
+  const date = currentLocationDateHour().date;
+  const month = Number(date?.slice(5, 7));
+  return Number.isFinite(month) && month >= 1 && month <= 12 ? month : new Date().getMonth() + 1;
+}
+
+function categoryInfo(id) {
+  if (id === 'weather') return { id:'weather', label:'Wetter', icon:'☁️' };
+  return GARDEN_CATEGORIES.find(category => category.id === id) || GARDEN_CATEGORIES[0];
+}
+
+function taskInfo(type) {
+  return GARDEN_TASK_TYPES[type] || { label:type, cls:'care' };
+}
+
+function tasksForMonth(item, month) {
+  return (item.tasks || []).filter(task => task.months?.includes(month));
+}
+
+function taskRank(type) {
+  const rank = TASK_SORT.indexOf(type);
+  return rank >= 0 ? rank : TASK_SORT.length;
+}
+
+function activeGardenCategory() {
+  return $('#garden-category-tabs .garden-category-btn.active')?.dataset.gardenCategory || 'all';
+}
+
+function gardenSignals() {
+  if (!state.weather?.daily) return [{ text:'Wetterdaten werden für die Gartenhinweise noch geladen', warn:false }];
+  const d = state.weather.daily;
+  const rain3 = d.precipitation_sum.slice(0,3).reduce((a,b)=>a+(b||0),0);
+  const rain7 = d.precipitation_sum.slice(0,7).reduce((a,b)=>a+(b||0),0);
+  const min3 = Math.min(...d.temperature_2m_min.slice(0,3));
+  const max3 = Math.max(...d.temperature_2m_max.slice(0,3));
+  const gust3 = Math.max(...d.wind_gusts_10m_max.slice(0,3));
+  const month = currentGardenMonth();
+  const signals = [];
+  if (min3 <= 2) signals.push({ text:'Frostgefahr: Jungpflanzen schützen', warn:true });
+  else signals.push({ text:'Kein Bodenfrost in den nächsten 3 Tagen', warn:false });
+  if (rain3 >= 18) signals.push({ text:'Sehr nass: Aussaat verschieben, Schnecken prüfen', warn:true });
+  else if (rain7 < 5) signals.push({ text:'Trocken: Saatbeete und Kübel feucht halten', warn:true });
+  else signals.push({ text:'Bodenfeuchte voraussichtlich brauchbar', warn:false });
+  if (max3 >= 29) signals.push({ text:'Hitze: morgens gießen, mulchen und schattieren', warn:true });
+  if (gust3 >= 50) signals.push({ text:'Sturmböen: Rankhilfen und Kübel sichern', warn:true });
+  if (month >= 3 && month <= 9) signals.push({ text:'Hecken: nur schonender Form- und Pflegeschnitt', warn:true });
+  return signals;
+}
+
+function weatherGardenTasks(month) {
+  const d = state.weather?.daily;
+  if (!d) return [];
+  const rain3 = d.precipitation_sum.slice(0,3).reduce((a,b)=>a+(b||0),0);
+  const rain7 = d.precipitation_sum.slice(0,7).reduce((a,b)=>a+(b||0),0);
+  const min3 = Math.min(...d.temperature_2m_min.slice(0,3));
+  const max3 = Math.max(...d.temperature_2m_max.slice(0,3));
+  const gust3 = Math.max(...d.wind_gusts_10m_max.slice(0,3));
+  const tasks = [];
+  const add = (type, label, note) => tasks.push({ name:'Wetter', icon:'☁️', category:'weather', task:gt(type, [month], label, note) });
+  if (min3 <= 2) add('protect', 'Jungpflanzen abdecken', 'Vlies, Hauben oder Topfpflanzen nutzen.');
+  if (max3 >= 29) add('protect', 'Jungpflanzen schattieren', 'Morgens gießen, Boden bedecken und Kübel aus der Mittagssonne nehmen.');
+  if (rain7 < 5) add('care', 'Gießen einplanen', 'Besonders Saat, Hochbeete, Kübel und Neupflanzungen prüfen.');
+  if (rain3 >= 18) add('care', 'Schnecken kontrollieren', 'Feuchte Phasen sind kritisch für Salat, Jungpflanzen und Dahlien.');
+  if (gust3 >= 50) add('protect', 'Rankhilfen sichern', 'Tomaten, Bohnen, Sonnenblumen und Kübel kontrollieren.');
+  return tasks;
+}
+
+function currentGardenTasks(month) {
+  const catalogTasks = PLANTS.flatMap(item => tasksForMonth(item, month).map(task => ({ item, task })));
+  const weatherTasks = weatherGardenTasks(month).map(item => ({ item, task:item.task }));
+  const seen = new Set();
+  return [...weatherTasks, ...catalogTasks]
+    .filter(({ item, task }) => {
+      const key = `${item.name}-${task.type}-${task.label}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => taskRank(a.task.type) - taskRank(b.task.type) || a.item.name.localeCompare(b.item.name, 'de'));
+}
+
+function renderGardenCategories(month) {
+  const active = activeGardenCategory();
+  const html = GARDEN_CATEGORIES.map(category => {
+    const count = category.id === 'all'
+      ? PLANTS.filter(item => tasksForMonth(item, month).length).length
+      : PLANTS.filter(item => item.category === category.id && tasksForMonth(item, month).length).length;
+    return `<button type="button" class="garden-category-btn ${category.id === active ? 'active' : ''}" data-garden-category="${category.id}" aria-pressed="${category.id === active}">
+      <span>${category.icon}</span><strong>${escapeHtml(category.label)}</strong><small>${count}</small>
+    </button>`;
+  }).join('');
+  $('#garden-category-tabs').innerHTML = html;
+}
+
+function mushroomSummary(month) {
+  const mushrooms = PLANTS.filter(item => item.category === 'mushroom' && tasksForMonth(item, month).some(task => task.type === 'find'));
+  if (!mushrooms.length) return '';
+  const names = mushrooms.slice(0, 8).map(item => item.name).join(', ');
+  const more = mushrooms.length > 8 ? ` und ${mushrooms.length - 8} weitere` : '';
+  return `<article class="mushroom-now neo-inset">
+    <strong>🍄 Für Pilzfreunde aktuell</strong>
+    <span>${escapeHtml(names)}${more}</span>
+    <small>${mushrooms.length} saisonale Fundhinweise im ${monthName(month)}</small>
+  </article>`;
+}
+
+function renderGardenNow(month) {
+  const tasks = currentGardenTasks(month).slice(0, 12);
+  $('#garden-now').innerHTML = tasks.length ? tasks.map(({ item, task }) => {
+    const info = taskInfo(task.type);
+    return `<article class="garden-task-card ${info.cls}">
+      <span class="task-icon">${item.icon}</span>
+      <div>
+        <strong>${escapeHtml(task.label)}</strong>
+        <small>${escapeHtml(item.name)} · ${escapeHtml(categoryInfo(item.category).label)}</small>
+        ${task.note ? `<p>${escapeHtml(task.note)}</p>` : ''}
+      </div>
+    </article>`;
+  }).join('') : '<div class="empty-state">Für diesen Monat sind keine Aufgaben hinterlegt.</div>';
+}
+
+function renderGarden() {
+  const month = currentGardenMonth();
+  $('#garden-month').textContent = monthName(month);
+  const signals = gardenSignals();
+  const currentItems = PLANTS.filter(item => tasksForMonth(item, month).length);
+  $('#garden-advice').innerHTML = `<div class="garden-advice-head">
+      <div><p class="eyebrow">Jetzt zu tun</p><h3>${currentItems.length} Einträge im ${monthName(month)}</h3></div>
+      <span>${PLANTS.length} Datenbank-Einträge</span>
+    </div>
+    <p>Der Gartenplaner zeigt Aussaat, Pflege, Schnitt, Ernte und Pilzfundzeiten. Wetterdaten deines Ortes fließen in die Aufgabenhinweise ein.</p>
+    <div class="garden-signals">${signals.map(signal => `<span class="signal ${signal.warn ? 'warn' : ''}">${escapeHtml(signal.text)}</span>`).join('')}</div>
+    ${mushroomSummary(month)}`;
+  renderGardenCategories(month);
+  renderGardenNow(month);
+  renderPlants();
+}
+
+function itemSearchText(item) {
+  return [
+    item.name,
+    categoryInfo(item.category).label,
+    item.notes,
+    item.habitat,
+    item.warning,
+    ...(item.tasks || []).flatMap(task => [task.label, task.note, taskInfo(task.type).label])
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function itemMatchesGardenFilter(item, filter, month) {
+  if (filter === 'all') return true;
+  const currentTasks = tasksForMonth(item, month);
+  if (filter === 'current') return currentTasks.length > 0;
+  return currentTasks.some(task => task.type === filter);
+}
+
+function mushroomSafetyCard() {
+  return `<article class="mushroom-safety-card neo-inset">
+    <strong>🍄 Pilz-Sicherheit</strong>
+    <p>Fundzeiten sind nur Orientierung. Die App bestimmt keine Pilze und gibt keine Verzehrfreigabe. Sammle und iss Pilze nur, wenn sie sicher bestimmt oder durch eine Pilzberatung freigegeben wurden.</p>
+  </article>`;
+}
+
+function renderPlants() {
+  const month = currentGardenMonth();
+  const filter = $('#garden-filter').value;
+  const category = activeGardenCategory();
+  const query = $('#plant-search').value.trim().toLowerCase();
+  const plants = PLANTS.filter(item => {
+    if (category !== 'all' && item.category !== category) return false;
+    if (query && !itemSearchText(item).includes(query)) return false;
+    return itemMatchesGardenFilter(item, filter, month);
+  }).sort((a, b) => {
+    const activeA = tasksForMonth(a, month).length ? 0 : 1;
+    const activeB = tasksForMonth(b, month).length ? 0 : 1;
+    return activeA - activeB || categoryInfo(a.category).label.localeCompare(categoryInfo(b.category).label, 'de') || a.name.localeCompare(b.name, 'de');
+  });
+  const showMushroomSafety = plants.length && (category === 'mushroom' || filter === 'find') && plants.some(item => item.category === 'mushroom');
+  $('#plant-list').innerHTML = plants.length
+    ? `${showMushroomSafety ? mushroomSafetyCard() : ''}${plants.map(item => plantCard(item, month)).join('')}`
+    : '<div class="empty-state">Keine passenden Einträge gefunden.</div>';
+}
+
+function monthCellType(item, month) {
+  const task = (item.tasks || [])
+    .filter(entry => entry.months?.includes(month))
+    .sort((a, b) => taskRank(a.type) - taskRank(b.type))[0];
+  return task ? taskInfo(task.type).cls : '';
+}
+
+function taskChips(item, month) {
+  const current = tasksForMonth(item, month);
+  const tasks = current.length ? current : (item.tasks || []).slice(0, 3);
+  return tasks.map(task => {
+    const info = taskInfo(task.type);
+    return `<span class="task-chip ${info.cls}">${escapeHtml(info.label)} · ${escapeHtml(task.label)}</span>`;
+  }).join('');
+}
+
+function plantCard(plant, currentMonth) {
+  const category = categoryInfo(plant.category);
+  const current = tasksForMonth(plant, currentMonth);
+  const cells = Array.from({length:12}, (_, i) => {
+    const month = i + 1;
+    const cls = monthCellType(plant, month);
+    const title = (plant.tasks || []).filter(task => task.months?.includes(month)).map(task => task.label).join(', ') || monthName(month);
+    return `<div class="month-cell ${cls} ${month === currentMonth ? 'current' : ''}" title="${escapeHtml(title)}">${month}</div>`;
+  }).join('');
+  return `<article class="plant-card ${plant.category === 'mushroom' ? 'mushroom-card' : ''}">
+    <div class="plant-head">
+      <div class="plant-title">
+        <span class="plant-emoji">${plant.icon}</span>
+        <div><h3>${escapeHtml(plant.name)}</h3><small>${category.icon} ${escapeHtml(category.label)}${current.length ? ` · Jetzt: ${current.map(task => escapeHtml(task.label)).join(' · ')}` : ' · Saisonübersicht'}</small></div>
+      </div>
+    </div>
+    <div class="task-chips">${taskChips(plant, currentMonth)}</div>
+    <div class="month-row">${cells}</div>
+    ${plant.habitat ? `<p class="plant-habitat"><strong>Standort:</strong> ${escapeHtml(plant.habitat)}</p>` : ''}
+    ${plant.warning ? `<p class="plant-warning"><strong>Achtung:</strong> ${escapeHtml(plant.warning)}</p>` : ''}
+    <p class="plant-notes">${escapeHtml(plant.notes)}</p>
+  </article>`;
 }
 
 function currentLocationText() {
@@ -1354,6 +1745,16 @@ function setupEvents() {
   });
   $('#plant-search').addEventListener('input', renderPlants);
   $('#garden-filter').addEventListener('change', renderPlants);
+  $('#garden-category-tabs').addEventListener('click', event => {
+    const button = event.target.closest('[data-garden-category]');
+    if (!button) return;
+    $$('#garden-category-tabs .garden-category-btn').forEach(item => {
+      const active = item === button;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+    renderPlants();
+  });
 }
 
 function registerPwa() {
