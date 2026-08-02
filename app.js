@@ -274,7 +274,7 @@ const GARDEN_CATEGORIES = [
   { id:'vegetable', label:'Gemüse', icon:'🥕' },
   { id:'fruit', label:'Obst', icon:'🍎' },
   { id:'herb', label:'Kräuter', icon:'🌿' },
-  { id:'mushroom', label:'Pilze', icon:'🍄' },
+  { id:'mushroom', label:'Pilze & Kostbares', icon:'🍄' },
   { id:'flower', label:'Blumen', icon:'🌸' },
   { id:'trees', label:'Gehölze', icon:'🌳' },
   { id:'lawn', label:'Rasen', icon:'🌱' },
@@ -362,6 +362,25 @@ const EXTRA_GARDEN_ITEMS = [
   { name:'Stockschwämmchen', icon:'🍄', category:'mushroom', tasks:[gt('find',[4,5,6,7,8,9,10,11],'Typische Fundzeit')], habitat:'An Laubholzstümpfen in Büscheln.', warning:'Lebensgefährlich mit Gifthäubling verwechselbar; nur für Experten.', notes:'Nicht für Einsteiger geeignet.' },
   { name:'Violetter Rötelritterling', icon:'🍄', category:'mushroom', tasks:[gt('find',[9,10,11,12],'Typische Fundzeit')], habitat:'Laubstreu, Kompostnähe, lichte Wälder.', warning:'Violette Farbe allein ist kein Bestimmungsmerkmal.', notes:'Spätherbstlicher Fundhinweis.' },
   { name:'Judasohr', icon:'🍄', category:'mushroom', tasks:[gt('find',[1,2,3,4,10,11,12],'Typische Fundzeit')], habitat:'Vor allem an Holunder und anderem Laubholz.', warning:'Nur frische, sicher bestimmte Fruchtkörper beachten.', notes:'Kann nach Regen auch im Winter erscheinen.' },
+  { name:'Bärlauch', icon:'🌿', category:'wild', tasks:[gt('find',[3,4,5],'Typische Sammelzeit')], habitat:'Feuchte Laub- und Auwälder, schattige humose Standorte.', warning:'Sehr kritische Verwechslung mit Maiglöckchen, Herbstzeitlose und Aronstab möglich.', notes:'Blätter meist vor der Blüte sammeln; Geruch allein reicht nicht zur sicheren Bestimmung.' },
+  { name:'Waldmeister', icon:'🌿', category:'wild', tasks:[gt('find',[4,5],'Typische Sammelzeit')], habitat:'Schattige Laubwälder, besonders Buchenwälder mit humosem Boden.', warning:'Nur sicher bestimmen und sparsam verwenden; der Duft entwickelt sich besonders beim Welken.', notes:'Kurze Frühjahrssaison vor und um die Blüte.' },
+  { name:'Brennnessel', icon:'🌿', category:'wild', tasks:[gt('find',[3,4,5,6,7,8,9,10],'Junge Triebe sammeln')], habitat:'Nährstoffreiche Böden, Gartenränder, Hecken, lichte Waldstellen.', warning:'Nicht an belasteten Straßenrändern oder Hundestrecken sammeln; Handschuhe nutzen.', notes:'Junge Triebspitzen sind meist am zartesten.' },
+  { name:'Giersch', icon:'🌿', category:'wild', tasks:[gt('find',[3,4,5,6,7,8,9,10],'Junge Blätter suchen')], habitat:'Halbschatten, Gartenränder, Hecken, feuchte nährstoffreiche Stellen.', warning:'Doldenblütler können kritisch sein; Stiel- und Blattmerkmale sicher prüfen.', notes:'Junge, glänzende Blätter sind milder als ältere.' },
+  { name:'Löwenzahn', icon:'🌼', category:'wild', tasks:[gt('find',[3,4,5,6,7,8,9,10],'Blätter und Blüten finden')], habitat:'Wiesen, Wegränder, Rasenflächen und offene Böden.', warning:'Nur von unbelasteten, nicht behandelten Flächen sammeln.', notes:'Blätter sind im Frühjahr meist weniger bitter.' },
+  { name:'Sauerampfer', icon:'🌿', category:'wild', tasks:[gt('find',[4,5,6,7,8,9],'Blätter suchen')], habitat:'Frische Wiesen, Wegränder und eher nährstoffreiche Böden.', warning:'Enthält Oxalsäure; nur maßvoll und nur bei sicherer Bestimmung nutzen.', notes:'Junge Blätter sind zarter und weniger faserig.' },
+  { name:'Holunderblüte', icon:'🌼', category:'wild', tasks:[gt('find',[5,6],'Blütendolden finden')], habitat:'Hecken, Waldränder, Dorfränder und nährstoffreiche Standorte.', warning:'Schwarzen Holunder sicher von anderen Holunderarten unterscheiden.', notes:'Trockene, duftende Blütendolden bevorzugen.' },
+  { name:'Holunderbeere', icon:'🫐', category:'wild', tasks:[gt('find',[8,9],'Reife Beeren finden')], habitat:'Hecken, Waldränder, Gärten und nährstoffreiche Standorte.', warning:'Rohe Beeren und Pflanzenteile sind ungeeignet; sicher bestimmen.', notes:'Reife, dunkle Dolden hängen meist im Spätsommer.' },
+  { name:'Heidelbeere', icon:'🫐', category:'wild', tasks:[gt('find',[7,8,9],'Beeren pflücken')], habitat:'Saure Nadel- und Mischwälder, Heideflächen und Moore.', warning:'Hygienisch sammeln und waschen; belastete Standorte meiden.', notes:'Typische Sommerbeere an niedrigen Zwergsträuchern.' },
+  { name:'Walderdbeere', icon:'🍓', category:'wild', tasks:[gt('find',[6,7,8],'Beeren finden')], habitat:'Lichte Wälder, Waldwege, Heckenränder und sonnige Säume.', warning:'Mit Scheinerdbeere verwechselbar; Standort und Fruchtmerkmale prüfen.', notes:'Kleine aromatische Früchte, oft nur in kleinen Mengen.' },
+  { name:'Wilde Himbeere', icon:'🍓', category:'wild', tasks:[gt('find',[6,7,8,9],'Beeren pflücken')], habitat:'Waldlichtungen, Wegränder, Kahlschläge und sonnige Säume.', warning:'Dornen, Zecken und belastete Standorte beachten; nur reife Früchte sammeln.', notes:'Die Frucht löst sich hohl vom hellen Zapfen.' },
+  { name:'Wilde Brombeere', icon:'🫐', category:'wild', tasks:[gt('find',[8,9,10],'Beeren pflücken')], habitat:'Hecken, Waldränder, Böschungen und sonnige Brachflächen.', warning:'Dornen, belastete Standorte und Schimmel an überreifen Früchten beachten.', notes:'Reift nach und nach, oft über mehrere Wochen.' },
+  { name:'Kornelkirsche', icon:'🍒', category:'wild', tasks:[gt('find',[8,9],'Reife Früchte finden')], habitat:'Hecken, Parks, warme Waldränder und sonnige Gebüsche.', warning:'Nur vollständig rote bis dunkelrote Früchte eindeutig bestimmen.', notes:'Reife Früchte fallen leicht ab und schmecken deutlich milder.' },
+  { name:'Sanddorn', icon:'🍊', category:'wild', tasks:[gt('find',[8,9,10],'Beeren finden')], habitat:'Sonnige, sandige Standorte, Küstenbereiche, Kiesflächen und Hecken.', warning:'Dornige Sträucher; nur eindeutig bestimmen und Schutzgebiete beachten.', notes:'Orange Beeren sitzen sehr dicht an den Zweigen.' },
+  { name:'Hagebutte', icon:'🌹', category:'wild', tasks:[gt('find',[9,10,11],'Früchte sammeln')], habitat:'Wildrosen an Hecken, Waldrändern, Böschungen und sonnigen Säumen.', warning:'Kerne und Härchen reizen; nur sichere Rosenfrüchte sammeln.', notes:'Nach kühlen Nächten werden viele Früchte weicher.' },
+  { name:'Schlehe', icon:'🫐', category:'wild', tasks:[gt('find',[10,11,12],'Früchte finden')], habitat:'Dornige Hecken, Waldränder, trockene Hänge und sonnige Gebüsche.', warning:'Dornig; andere Prunus-Arten sicher ausschließen.', notes:'Nach Frost oder Gefrieren werden die Früchte milder.' },
+  { name:'Haselnuss', icon:'🌰', category:'wild', tasks:[gt('find',[9,10],'Nüsse sammeln')], habitat:'Hecken, Waldränder, Feldgehölze und lichte Wälder.', warning:'Nur frische, unverpilzte Nüsse nutzen; Allergien beachten.', notes:'Reife Nüsse lösen sich leicht aus der grünen Hülle.' },
+  { name:'Walnuss', icon:'🌰', category:'wild', tasks:[gt('find',[9,10],'Nüsse aufsammeln')], habitat:'Walnussbäume in Gärten, Parks, Obstwiesen und warmen Lagen.', warning:'Schimmel bei Lagerung vermeiden; nur trockene, gesunde Nüsse behalten.', notes:'Fallnüsse zügig trocknen und luftig lagern.' },
+  { name:'Esskastanie', icon:'🌰', category:'wild', tasks:[gt('find',[10,11],'Maronen sammeln')], habitat:'Warme Lagen, Parks, alte Haine und lichte Wälder.', warning:'Nicht mit Rosskastanie verwechseln; stachelige Fruchtbecher prüfen.', notes:'Reife Maronen fallen aus den stark stacheligen Hüllen.' },
   { name:'Ringelblume', icon:'🌼', category:'flower', tasks:[gt('sow',[3,4,5,6,7,8],'Direktsaat'), gt('care',[6,7,8,9],'Verblühtes entfernen'), gt('harvest',[6,7,8,9,10],'Blüten sammeln')], notes:'Versamt sich leicht und lockt Nützlinge an.' },
   { name:'Sonnenblume', icon:'🌻', category:'flower', tasks:[gt('indoor',[3,4],'Vorziehen'), gt('sow',[4,5,6],'Direktsaat'), gt('care',[6,7,8],'Stützen'), gt('harvest',[9,10],'Samenstände ernten')], notes:'Hohe Sorten früh stützen.' },
   { name:'Dahlie', icon:'🌸', category:'flower', tasks:[gt('plant',[5,6],'Knollen legen'), gt('care',[6,7,8,9],'Ausputzen & stützen'), gt('protect',[10,11],'Knollen ausgraben')], notes:'Frostempfindlich; erst nach den Eisheiligen raus.' },
@@ -379,7 +398,213 @@ const EXTRA_GARDEN_ITEMS = [
   { name:'Kübelpflanzen', icon:'🪴', category:'balcony', tasks:[gt('plant',[4,5],'Umtopfen'), gt('fertilize',[5,6,7,8],'Düngen'), gt('care',[6,7,8,9],'Ausputzen'), gt('protect',[10,11],'Einräumen')], notes:'Untersetzer nach Starkregen leeren, damit keine Staunässe entsteht.' }
 ];
 
-const PLANTS = [...LEGACY_PLANTS.map(legacyPlantToGardenItem), ...EXTRA_GARDEN_ITEMS];
+const MUSHROOM_DETAILS = {
+  'Pfifferling': {
+    wiki:'Echter Pfifferling',
+    features:['Dottergelbe bis goldgelbe Fruchtkörper', 'Leisten laufen am Stiel herab, keine dünnen Lamellen', 'Festes Fleisch mit fruchtigem Geruch', 'Wächst oft moosig bei Buchen, Fichten oder Kiefern'],
+    lookalikes:'Falscher Pfifferling, Ölbaumpilz in wärmeren Regionen'
+  },
+  'Steinpilz': {
+    wiki:'Gemeiner Steinpilz',
+    features:['Brauner Hut, jung oft halbkugelig', 'Weiße bis olivgelbe Röhren statt Lamellen', 'Heller, bauchiger Stiel mit feinem Netz', 'Fleisch bleibt beim Anschneiden meist weiß'],
+    lookalikes:'Bitterröhrling und andere Röhrlinge'
+  },
+  'Maronen-Röhrling': {
+    wiki:'Maronen-Röhrling',
+    features:['Kastanienbrauner, bei Feuchte schmieriger Hut', 'Gelbliche Röhren blauen auf Druck oft an', 'Bräunlicher Stiel ohne deutliches Netz', 'Häufig bei Fichten und Kiefern'],
+    lookalikes:'Andere braune Röhrlinge; genaue Röhren- und Stielmerkmale prüfen'
+  },
+  'Birkenpilz': {
+    wiki:'Gemeiner Birkenpilz',
+    features:['Wächst in Nähe von Birken', 'Graubrauner Hut', 'Weißlicher Stiel mit dunklen Schüppchen', 'Röhren weißlich bis grau'],
+    lookalikes:'Rotkappen und andere Raufußröhrlinge'
+  },
+  'Rotkappe': {
+    wiki:'Rotkappe',
+    features:['Orange bis rötlicher Hut', 'Stiel mit dunklen Schüppchen', 'Raufußröhrling mit Baumpartner', 'Fleisch kann beim Anschneiden verfärben'],
+    lookalikes:'Mehrere Rotkappen-Arten; Baumpartner und Verfärbung prüfen'
+  },
+  'Flockenstieliger Hexenröhrling': {
+    wiki:'Flockenstieliger Hexen-Röhrling',
+    features:['Dunkelbrauner Hut', 'Rote Röhrenmündungen', 'Gelblicher Stiel mit roten Flocken, kein Netz', 'Stark blauendes Fleisch bei Druck oder Schnitt'],
+    lookalikes:'Netzstieliger Hexenröhrling, Satansröhrling und andere Röhrlinge'
+  },
+  'Parasol': {
+    wiki:'Gemeiner Riesenschirmling',
+    features:['Großer schuppiger Hut mit dunklem Buckel', 'Langer genatterter Stiel', 'Verschiebbarer Ring', 'Freie helle Lamellen'],
+    lookalikes:'Giftige kleine Schirmlinge; junge oder kleine Exemplare meiden'
+  },
+  'Krause Glucke': {
+    wiki:'Krause Glucke',
+    features:['Korallenartig gekräuselter Fruchtkörper', 'Cremefarben bis gelblich', 'Oft am Fuß von Kiefern', 'Keine klassische Hut-Stiel-Form'],
+    lookalikes:'Andere Glucken und korallenartige Pilze'
+  },
+  'Totentrompete': {
+    wiki:'Herbsttrompete',
+    features:['Dunkle trichter- bis trompetenförmige Fruchtkörper', 'Dünnes, hohles Fleisch', 'Unterseite glatt bis leicht runzelig', 'Oft in Gruppen in Laubwäldern'],
+    lookalikes:'Andere dunkle Leistlingsverwandte'
+  },
+  'Trompetenpfifferling': {
+    wiki:'Trompetenpfifferling',
+    features:['Brauner bis graubrauner Hut mit Vertiefung', 'Gelblicher hohler Stiel', 'Leisten an der Unterseite, keine Lamellen', 'Feuchte moosige Nadelwälder'],
+    lookalikes:'Andere kleine Leistlinge und Trichterlinge'
+  },
+  'Austernseitling': {
+    wiki:'Austern-Seitling',
+    features:['Seitlich angewachsener, muschelartiger Hut', 'Helle herablaufende Lamellen', 'Wächst büschelig an Holz', 'Oft in kühler Jahreszeit'],
+    lookalikes:'Andere Seitlinge; alte Baumpilze sorgfältig prüfen'
+  },
+  'Samtfußrübling': {
+    wiki:'Gemeiner Samtfußrübling',
+    features:['Honiggelber bis orangebrauner Hut', 'Dunkel samtiger Stielgrund', 'Wächst büschelig an Holz', 'Typisch in kalter Jahreszeit'],
+    lookalikes:'Gifthäubling; für Anfänger besonders kritisch'
+  },
+  'Speisemorchel': {
+    wiki:'Speisemorchel',
+    features:['Wabenartig gekammerter Hut', 'Hut und Stiel innen hohl', 'Hutrand mit dem Stiel verwachsen', 'Frühjahrspilz an passenden Standorten'],
+    lookalikes:'Lorcheln und andere Morcheln; roh unverträglich'
+  },
+  'Schopftintling': {
+    wiki:'Schopf-Tintling',
+    features:['Jung walzenförmig weiß mit schuppigem Hut', 'Lamellen verfärben sich rosa bis schwarz', 'Zerfließt später tintenartig', 'Wächst auf Wiesen und Wegrändern'],
+    lookalikes:'Andere Tintlinge; nur ganz junge Fruchtkörper beurteilen'
+  },
+  'Wiesenchampignon': {
+    wiki:'Wiesen-Champignon',
+    features:['Wächst auf Wiesen, nicht im Wald', 'Lamellen jung rosa, später schokoladenbraun', 'Ring am Stiel', 'Stielbasis ohne Scheide'],
+    lookalikes:'Knollenblätterpilze und Karbol-Champignon; sehr kritisch'
+  },
+  'Hallimasch': {
+    wiki:'Hallimasche',
+    features:['Büschelig an Holz oder Wurzeln', 'Honigbraune Hüte mit Schüppchen', 'Oft Ring am Stiel', 'Weiße Sporenpulverfarbe bei der Gattung'],
+    lookalikes:'Andere holzbewohnende Lamellenpilze; roh giftig'
+  },
+  'Edel-Reizker': {
+    wiki:'Edel-Reizker',
+    features:['Orangefarbene Milch beim Anschneiden', 'Orange zonierter Hut', 'Sprödes Fleisch wie bei Milchlingen', 'Meist bei Kiefern'],
+    lookalikes:'Andere Reizker und Milchlinge'
+  },
+  'Stockschwämmchen': {
+    wiki:'Stockschwämmchen',
+    features:['Büschelig an Holz', 'Hygrophaner brauner Hut mit hellerem Rand', 'Stiel unterhalb des Rings schuppig', 'Braunes Sporenpulver'],
+    lookalikes:'Gifthäubling, lebensgefährlich verwechselbar'
+  },
+  'Violetter Rötelritterling': {
+    wiki:'Violetter Rötelritterling',
+    features:['Violette bis lila Farbtöne an Hut, Lamellen und Stiel', 'Lamellen dicht stehend', 'Angenehm aromatischer Geruch möglich', 'Spätherbstlich in Laubstreu'],
+    lookalikes:'Violette Schleierlinge und andere Lamellenpilze'
+  },
+  'Judasohr': {
+    wiki:'Judasohr',
+    features:['Ohrförmiger, gallertiger Fruchtkörper', 'Braun bis rotbraun', 'Wächst häufig an Holunder', 'Quillt nach Regen stark auf'],
+    lookalikes:'Andere gallertige Baumpilze'
+  }
+};
+
+const FORAGE_DETAILS = {
+  'Bärlauch': {
+    wiki:'Bärlauch',
+    features:['Einzelne lanzettliche Blätter aus eigenem Stiel', 'Knoblauchartiger Geruch kann helfen, ist allein unsicher', 'Weiße sternförmige Blüten später im Frühjahr', 'Feuchte, schattige Laubwald-Standorte'],
+    lookalikes:'Maiglöckchen, Herbstzeitlose, Aronstab'
+  },
+  'Waldmeister': {
+    wiki:'Waldmeister',
+    features:['Quirlständige lanzettliche Blätter', 'Kleine weiße Blüten', 'Duftet nach dem Welken stärker', 'Typisch in Buchenwald und schattigen Laubwäldern'],
+    lookalikes:'Andere Labkräuter; nur sicher bestimmte Pflanzen sammeln'
+  },
+  'Brennnessel': {
+    wiki:'Große Brennnessel',
+    features:['Gegenständige gesägte Blätter', 'Brennhaare an Stängel und Blättern', 'Vierkantiger Stängel', 'Nährstoffreiche Standorte'],
+    lookalikes:'Taubnesseln ohne Brennhaare und andere Lippenblütler'
+  },
+  'Giersch': {
+    wiki:'Giersch',
+    features:['Dreikantiger Blattstiel', 'Blatt oft in 3 mal 3 Teilblättchen gegliedert', 'Weiße Doldenblüten später im Jahr', 'Ausbreitend an schattigen, nährstoffreichen Stellen'],
+    lookalikes:'Giftige Doldenblütler; nur mit sicherer Artenkenntnis sammeln'
+  },
+  'Löwenzahn': {
+    wiki:'Gewöhnlicher Löwenzahn',
+    features:['Blattrosette mit gezähnten Blättern', 'Gelbe Einzelblüte auf hohlem Stängel', 'Milchsaft in Stängel und Blättern', 'Pusteblume nach der Blüte'],
+    lookalikes:'Andere Korbblütler und löwenzahnähnliche Arten'
+  },
+  'Sauerampfer': {
+    wiki:'Wiesen-Sauerampfer',
+    features:['Pfeilförmige Blätter mit saurem Geschmack', 'Wächst häufig auf frischen Wiesen', 'Rötliche Blütenstände', 'Glatter aufrechter Stängel'],
+    lookalikes:'Andere Ampferarten; Oxalsäure beachten'
+  },
+  'Holunderblüte': {
+    wiki:'Schwarzer Holunder',
+    features:['Flache duftende weiße Blütendolden', 'Gefiederte Blätter', 'Markige Zweige', 'Strauch oder kleiner Baum an nährstoffreichen Standorten'],
+    lookalikes:'Zwergholunder und andere Holunderarten'
+  },
+  'Holunderbeere': {
+    wiki:'Schwarzer Holunder',
+    features:['Schwarz-violette Beeren in hängenden Dolden', 'Gefiederte Blätter', 'Markige Zweige', 'Reife meist im Spätsommer'],
+    lookalikes:'Zwergholunder, Roter Holunder'
+  },
+  'Heidelbeere': {
+    wiki:'Heidelbeere',
+    image:'https://commons.wikimedia.org/wiki/Special:FilePath/Bieszczady%20Flora.jpg?width=900',
+    features:['Niedriger Zwergstrauch', 'Kleine eiförmige Blätter', 'Dunkelblaue bereifte Beeren', 'Fruchtfleisch färbt oft blau-violett'],
+    lookalikes:'Rauschbeere und andere Vaccinium-Arten'
+  },
+  'Walderdbeere': {
+    wiki:'Wald-Erdbeere',
+    features:['Dreiteilige gezähnte Blätter', 'Weiße Blüten', 'Kleine rote aromatische Sammelfrüchte', 'Häufig an lichten Wald- und Wegrändern'],
+    lookalikes:'Scheinerdbeere und andere Erdbeer-Arten'
+  },
+  'Wilde Himbeere': {
+    wiki:'Himbeere',
+    features:['Beeren lösen sich hohl vom hellen Zapfen', 'Ruten mit feinen Stacheln', 'Blattunterseiten oft hell-filzig', 'Wächst an Lichtungen, Wegrändern und Waldsäumen'],
+    lookalikes:'Andere Rubus-Arten'
+  },
+  'Wilde Brombeere': {
+    wiki:'Brombeeren',
+    features:['Stachelige Ranken', 'Dreiteilige bis fünfteilige Blätter', 'Schwarze Sammelfrüchte', 'Reift nach und nach an sonnigen Rändern'],
+    lookalikes:'Andere Rubus-Arten'
+  },
+  'Kornelkirsche': {
+    wiki:'Kornelkirsche',
+    features:['Gelbe Frühblüte vor dem Laub', 'Rote längliche Steinfrüchte', 'Gegenständige Blätter', 'Strauch oder kleiner Baum'],
+    lookalikes:'Andere Hartriegel-Arten'
+  },
+  'Sanddorn': {
+    wiki:'Sanddorn',
+    features:['Schmale silbrige Blätter', 'Orange Beeren dicht an den Zweigen', 'Dornige Sträucher', 'Sonnige sandige Standorte'],
+    lookalikes:'Andere dornige Sträucher'
+  },
+  'Hagebutte': {
+    wiki:'Hagebutte',
+    features:['Rote bis orange Scheinfrüchte an Rosen', 'Oft mit Kelchresten', 'Sträucher mit Stacheln', 'Reife meist ab Spätsommer'],
+    lookalikes:'Andere Rosenarten; Kerne und Härchen können reizen'
+  },
+  'Schlehe': {
+    wiki:'Schlehdorn',
+    features:['Dorniger Strauch', 'Kleine blau bereifte Steinfrüchte', 'Weiße Blüten vor dem Laub', 'Hecken, Waldränder und sonnige Säume'],
+    lookalikes:'Andere Prunus-Arten'
+  },
+  'Haselnuss': {
+    wiki:'Gemeine Hasel',
+    features:['Runde bis herzförmige gezähnte Blätter', 'Kätzchen im Frühjahr', 'Nüsse in grünen Hüllen', 'Strauch an Hecken und Waldrändern'],
+    lookalikes:'Andere Nüsse; Allergien beachten'
+  },
+  'Walnuss': {
+    wiki:'Echte Walnuss',
+    features:['Großer Baum mit gefiederten Blättern', 'Grüne Fruchtschale um harte Nuss', 'Aromatischer Blattgeruch', 'Reife Nüsse fallen im Herbst'],
+    lookalikes:'Andere Juglans-Arten; Schimmel bei Lagerung vermeiden'
+  },
+  'Esskastanie': {
+    wiki:'Edelkastanie',
+    features:['Stark stachelige Fruchtbecher', 'Längliche gezähnte Blätter', 'Glänzende braune Maronen', 'Wärmeliebende Bäume in Parks und Wäldern'],
+    lookalikes:'Rosskastanie ist nicht essbar'
+  }
+};
+
+const FIND_DETAILS = { ...MUSHROOM_DETAILS, ...FORAGE_DETAILS };
+const mushroomImageCache = new Map();
+const PLANTS = [...LEGACY_PLANTS.map(legacyPlantToGardenItem), ...EXTRA_GARDEN_ITEMS].map(item =>
+  (item.category === 'mushroom' || item.category === 'wild') && FIND_DETAILS[item.name] ? { ...item, ...FIND_DETAILS[item.name] } : item
+);
 
 function toast(message) {
   const el = $('#toast');
@@ -892,6 +1117,7 @@ function currentGardenMonth() {
 
 function categoryInfo(id) {
   if (id === 'weather') return { id:'weather', label:'Wetter', icon:'☁️' };
+  if (id === 'wild') return { id:'wild', label:'Kostbarkeiten', icon:'🫐' };
   return GARDEN_CATEGORIES.find(category => category.id === id) || GARDEN_CATEGORIES[0];
 }
 
@@ -910,6 +1136,16 @@ function taskRank(type) {
 
 function activeGardenCategory() {
   return $('#garden-category-tabs .garden-category-btn.active')?.dataset.gardenCategory || 'all';
+}
+
+function isForageItem(item) {
+  return item.category === 'mushroom' || item.category === 'wild';
+}
+
+function itemInGardenCategory(item, category) {
+  if (category === 'all') return true;
+  if (category === 'mushroom') return isForageItem(item);
+  return item.category === category;
 }
 
 function gardenSignals() {
@@ -970,7 +1206,7 @@ function renderGardenCategories(month) {
   const html = GARDEN_CATEGORIES.map(category => {
     const count = category.id === 'all'
       ? PLANTS.filter(item => tasksForMonth(item, month).length).length
-      : PLANTS.filter(item => item.category === category.id && tasksForMonth(item, month).length).length;
+      : PLANTS.filter(item => itemInGardenCategory(item, category.id) && tasksForMonth(item, month).length).length;
     return `<button type="button" class="garden-category-btn ${category.id === active ? 'active' : ''}" data-garden-category="${category.id}" aria-pressed="${category.id === active}">
       <span>${category.icon}</span><strong>${escapeHtml(category.label)}</strong><small>${count}</small>
     </button>`;
@@ -979,14 +1215,14 @@ function renderGardenCategories(month) {
 }
 
 function mushroomSummary(month) {
-  const mushrooms = PLANTS.filter(item => item.category === 'mushroom' && tasksForMonth(item, month).some(task => task.type === 'find'));
-  if (!mushrooms.length) return '';
-  const names = mushrooms.slice(0, 8).map(item => item.name).join(', ');
-  const more = mushrooms.length > 8 ? ` und ${mushrooms.length - 8} weitere` : '';
+  const finds = PLANTS.filter(item => isForageItem(item) && tasksForMonth(item, month).some(task => task.type === 'find'));
+  if (!finds.length) return '';
+  const names = finds.slice(0, 8).map(item => item.name).join(', ');
+  const more = finds.length > 8 ? ` und ${finds.length - 8} weitere` : '';
   return `<article class="mushroom-now neo-inset">
-    <strong>🍄 Für Pilzfreunde aktuell</strong>
+    <strong>🍄🫐 Aktuell draußen zu finden</strong>
     <span>${escapeHtml(names)}${more}</span>
-    <small>${mushrooms.length} saisonale Fundhinweise im ${monthName(month)}</small>
+    <small>${finds.length} saisonale Fundhinweise im ${monthName(month)}</small>
   </article>`;
 }
 
@@ -1029,6 +1265,8 @@ function itemSearchText(item) {
     item.notes,
     item.habitat,
     item.warning,
+    item.lookalikes,
+    ...(item.features || []),
     ...(item.tasks || []).flatMap(task => [task.label, task.note, taskInfo(task.type).label])
   ].filter(Boolean).join(' ').toLowerCase();
 }
@@ -1042,9 +1280,83 @@ function itemMatchesGardenFilter(item, filter, month) {
 
 function mushroomSafetyCard() {
   return `<article class="mushroom-safety-card neo-inset">
-    <strong>🍄 Pilz-Sicherheit</strong>
-    <p>Fundzeiten sind nur Orientierung. Die App bestimmt keine Pilze und gibt keine Verzehrfreigabe. Sammle und iss Pilze nur, wenn sie sicher bestimmt oder durch eine Pilzberatung freigegeben wurden.</p>
+    <strong>🍄🫐 Sammel-Sicherheit</strong>
+    <p>Fundzeiten sind nur Orientierung. Die App bestimmt keine Pilze, Wildpflanzen oder Beeren und gibt keine Verzehrfreigabe. Sammle und iss nur, was sicher bestimmt ist; bei Pilzen eine Pilzberatung nutzen.</p>
   </article>`;
+}
+
+async function fetchMushroomWikiData(item) {
+  if (!item?.wiki) return null;
+  if (mushroomImageCache.has(item.name)) return mushroomImageCache.get(item.name);
+
+  const request = (async () => {
+    if (item.image) {
+      return {
+        image:item.image,
+        page:`https://de.wikipedia.org/wiki/${encodeURIComponent(item.wiki.replaceAll(' ', '_'))}`,
+        title:item.wiki || item.name
+      };
+    }
+
+    const summaryUrl = title => `https://de.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replaceAll(' ', '_'))}`;
+    let data = await fetchJson(summaryUrl(item.wiki), { timeout: 9000 }).catch(() => null);
+
+    if (!data?.thumbnail?.source && !data?.originalimage?.source) {
+      const searchHint = item.category === 'mushroom' ? 'Pilz' : 'Wildpflanze';
+      const search = await fetchJson(`https://de.wikipedia.org/w/api.php?action=query&origin=*&format=json&list=search&srlimit=1&srsearch=${encodeURIComponent(`${item.name} ${searchHint}`)}`, { timeout: 9000 }).catch(() => null);
+      const title = search?.query?.search?.[0]?.title;
+      if (title) data = await fetchJson(summaryUrl(title), { timeout: 9000 }).catch(() => null);
+    }
+
+    let image = data?.thumbnail?.source || data?.originalimage?.source;
+    if (!image && data?.title) {
+      const imageQuery = await fetchJson(`https://de.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=900&titles=${encodeURIComponent(data.title)}`, { timeout: 9000 }).catch(() => null);
+      const page = Object.values(imageQuery?.query?.pages || {})[0];
+      image = page?.thumbnail?.source;
+    }
+    if (!image && item.image) image = item.image;
+    if (!image) return null;
+    return {
+      image,
+      page:data?.content_urls?.desktop?.page || `https://de.wikipedia.org/wiki/${encodeURIComponent(item.wiki.replaceAll(' ', '_'))}`,
+      title:data?.title || item.wiki
+    };
+  })();
+
+  mushroomImageCache.set(item.name, request);
+  return request;
+}
+
+function hydrateMushroomImages() {
+  $$('[data-mushroom-name]').forEach(async slot => {
+    const item = PLANTS.find(entry => entry.name === slot.dataset.mushroomName && isForageItem(entry));
+    if (!item || slot.dataset.loaded === '1') return;
+    slot.dataset.loaded = '1';
+    const data = await fetchMushroomWikiData(item);
+    const image = slot.querySelector('img');
+    const link = slot.querySelector('a');
+    const placeholder = slot.querySelector('.mushroom-photo-placeholder span');
+    if (!data || !image || !link) {
+      slot.classList.add('failed');
+      if (placeholder) placeholder.textContent = 'Bild nicht verfügbar';
+      return;
+    }
+    image.src = data.image;
+    image.alt = `${item.name}: Foto aus Wikipedia/Wikimedia`;
+    image.hidden = false;
+    link.href = data.page;
+    link.textContent = `Bild/Artikel: ${data.title}`;
+    link.hidden = false;
+    slot.classList.add('loaded');
+  });
+}
+
+function mushroomImageSlot(plant) {
+  return `<figure class="mushroom-photo" data-mushroom-name="${escapeHtml(plant.name)}">
+    <div class="mushroom-photo-placeholder">${plant.icon}<span>Bild lädt …</span></div>
+    <img hidden loading="lazy" referrerpolicy="no-referrer" alt="" />
+    <figcaption><a hidden target="_blank" rel="noopener noreferrer">Bild/Artikel: Wikipedia</a></figcaption>
+  </figure>`;
 }
 
 function renderPlants() {
@@ -1053,18 +1365,19 @@ function renderPlants() {
   const category = activeGardenCategory();
   const query = $('#plant-search').value.trim().toLowerCase();
   const plants = PLANTS.filter(item => {
-    if (category !== 'all' && item.category !== category) return false;
+    if (!itemInGardenCategory(item, category)) return false;
     if (query && !itemSearchText(item).includes(query)) return false;
-    return itemMatchesGardenFilter(item, filter, month);
+    return itemMatchesGardenFilter(item, query && filter === 'current' ? 'all' : filter, month);
   }).sort((a, b) => {
     const activeA = tasksForMonth(a, month).length ? 0 : 1;
     const activeB = tasksForMonth(b, month).length ? 0 : 1;
     return activeA - activeB || categoryInfo(a.category).label.localeCompare(categoryInfo(b.category).label, 'de') || a.name.localeCompare(b.name, 'de');
   });
-  const showMushroomSafety = plants.length && (category === 'mushroom' || filter === 'find') && plants.some(item => item.category === 'mushroom');
+  const showMushroomSafety = plants.length && (category === 'mushroom' || filter === 'find') && plants.some(isForageItem);
   $('#plant-list').innerHTML = plants.length
     ? `${showMushroomSafety ? mushroomSafetyCard() : ''}${plants.map(item => plantCard(item, month)).join('')}`
     : '<div class="empty-state">Keine passenden Einträge gefunden.</div>';
+  hydrateMushroomImages();
 }
 
 function monthCellType(item, month) {
@@ -1092,7 +1405,8 @@ function plantCard(plant, currentMonth) {
     const title = (plant.tasks || []).filter(task => task.months?.includes(month)).map(task => task.label).join(', ') || monthName(month);
     return `<div class="month-cell ${cls} ${month === currentMonth ? 'current' : ''}" title="${escapeHtml(title)}">${month}</div>`;
   }).join('');
-  return `<article class="plant-card ${plant.category === 'mushroom' ? 'mushroom-card' : ''}">
+  return `<article class="plant-card ${isForageItem(plant) ? 'mushroom-card' : ''}">
+    ${isForageItem(plant) ? mushroomImageSlot(plant) : ''}
     <div class="plant-head">
       <div class="plant-title">
         <span class="plant-emoji">${plant.icon}</span>
@@ -1101,7 +1415,9 @@ function plantCard(plant, currentMonth) {
     </div>
     <div class="task-chips">${taskChips(plant, currentMonth)}</div>
     <div class="month-row">${cells}</div>
+    ${plant.features?.length ? `<div class="mushroom-features"><strong>Merkmale prüfen</strong><ul>${plant.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('')}</ul></div>` : ''}
     ${plant.habitat ? `<p class="plant-habitat"><strong>Standort:</strong> ${escapeHtml(plant.habitat)}</p>` : ''}
+    ${plant.lookalikes ? `<p class="plant-warning"><strong>Verwechslungen:</strong> ${escapeHtml(plant.lookalikes)}</p>` : ''}
     ${plant.warning ? `<p class="plant-warning"><strong>Achtung:</strong> ${escapeHtml(plant.warning)}</p>` : ''}
     <p class="plant-notes">${escapeHtml(plant.notes)}</p>
   </article>`;
